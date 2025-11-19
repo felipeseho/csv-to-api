@@ -30,3 +30,6 @@ Thumbs.db
 config-production.yaml
 *.secret.yaml
 
+# Checkpointing and temporary files
+checkpoints/
+temp/
