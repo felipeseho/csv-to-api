@@ -70,10 +70,10 @@ public class ApiClientService
     /// Processa um lote de registros
     /// </summary>
     public async Task<int> ProcessBatchAsync(HttpClient httpClient, List<CsvRecord> batch, 
-        Configuration config, string[] headers, bool dryRun = false)
+        Configuration config, string logPath, string[] headers, bool dryRun = false)
     {
         // Processar em paralelo para melhor performance
-        var tasks = batch.Select(record => ProcessRecordAsync(httpClient, record, config, headers, dryRun));
+        var tasks = batch.Select(record => ProcessRecordAsync(httpClient, record, config, logPath, headers, dryRun));
         var results = await Task.WhenAll(tasks);
 
         return results.Count(r => !r);
@@ -83,7 +83,7 @@ public class ApiClientService
     /// Processa um único registro
     /// </summary>
     private async Task<bool> ProcessRecordAsync(HttpClient httpClient, CsvRecord record, 
-        Configuration config, string[] headers, bool dryRun = false)
+        Configuration config, string logPath, string[] headers, bool dryRun = false)
     {
         // Aguardar rate limiter se configurado
         if (_rateLimiter != null)
@@ -107,11 +107,11 @@ public class ApiClientService
                 return true;
             }
 
-            return await SendWithRetryAsync(httpClient, config, json, record, headers);
+            return await SendWithRetryAsync(httpClient, config, logPath, json, record, headers);
         }
         catch (Exception ex)
         {
-            await _loggingService.LogError(config.File.LogPath, record, 500, ex.Message, headers);
+            await _loggingService.LogError(logPath, record, 500, ex.Message, headers);
             return false;
         }
     }
@@ -120,7 +120,7 @@ public class ApiClientService
     /// Envia requisição com retry policy
     /// </summary>
     private async Task<bool> SendWithRetryAsync(HttpClient httpClient, Configuration config, 
-        string json, CsvRecord record, string[] headers)
+        string logPath, string json, CsvRecord record, string[] headers)
     {
         int attempts = 0;
         Exception? lastException = null;
@@ -174,7 +174,7 @@ public class ApiClientService
                     }
 
                     var errorMessage = await response.Content.ReadAsStringAsync();
-                    await _loggingService.LogError(config.File.LogPath, record, (int)response.StatusCode, 
+                    await _loggingService.LogError(logPath, record, (int)response.StatusCode, 
                         errorMessage, headers);
                     _metricsService?.RecordError();
                     return false;
@@ -208,7 +208,7 @@ public class ApiClientService
         }
 
         // Todas as tentativas falharam
-        await _loggingService.LogError(config.File.LogPath, record, 500, 
+        await _loggingService.LogError(logPath, record, 500, 
             lastException?.Message ?? "Todas as tentativas falharam", headers);
         _metricsService?.RecordError();
         return false;

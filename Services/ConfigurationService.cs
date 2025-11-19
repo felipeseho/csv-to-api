@@ -34,8 +34,8 @@ public class ConfigurationService
         if (options.BatchLines.HasValue)
             config.File.BatchLines = options.BatchLines.Value;
         
-        if (!string.IsNullOrWhiteSpace(options.LogPath))
-            config.File.LogPath = options.LogPath;
+        if (!string.IsNullOrWhiteSpace(options.LogDirectory))
+            config.File.LogDirectory = options.LogDirectory;
         
         if (!string.IsNullOrWhiteSpace(options.CsvDelimiter))
             config.File.CsvDelimiter = options.CsvDelimiter;
@@ -45,10 +45,6 @@ public class ConfigurationService
         
         if (options.MaxLines.HasValue)
             config.File.MaxLines = options.MaxLines.Value;
-        
-        // Sobrescrever resetCheckpoint se fornecido
-        if (options.ResetCheckpoint)
-            config.File.ResetCheckpoint = options.ResetCheckpoint;
         
         // Sobrescrever configurações de API se fornecidas
         if (!string.IsNullOrWhiteSpace(options.EndpointUrl))
@@ -113,14 +109,30 @@ public class ConfigurationService
     }
 
     /// <summary>
+    /// Gera os caminhos de arquivos para uma execução específica
+    /// </summary>
+    public ExecutionPaths GenerateExecutionPaths(Configuration config, string executionId)
+    {
+        return new ExecutionPaths
+        {
+            LogPath = Path.Combine(config.File.LogDirectory, $"process_{executionId}.log"),
+            CheckpointPath = Path.Combine(config.File.CheckpointDirectory, $"checkpoint_{executionId}.json")
+        };
+    }
+
+    /// <summary>
     /// Cria diretórios necessários
     /// </summary>
     public void EnsureDirectoriesExist(Configuration config)
     {
-        var logDir = Path.GetDirectoryName(config.File.LogPath);
-        if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
+        if (!string.IsNullOrEmpty(config.File.LogDirectory) && !Directory.Exists(config.File.LogDirectory))
         {
-            Directory.CreateDirectory(logDir);
+            Directory.CreateDirectory(config.File.LogDirectory);
+        }
+        
+        if (!string.IsNullOrEmpty(config.File.CheckpointDirectory) && !Directory.Exists(config.File.CheckpointDirectory))
+        {
+            Directory.CreateDirectory(config.File.CheckpointDirectory);
         }
     }
 }

@@ -29,9 +29,9 @@ public class Program
             aliases: new[] { "--batch-lines", "-b" },
             description: "Número de linhas por lote (sobrescreve config)");
 
-        var logPathOption = new Option<string?>(
-            aliases: new[] { "--log-path", "-l" },
-            description: "Caminho do arquivo de log (sobrescreve config)");
+        var logDirectoryOption = new Option<string?>(
+            aliases: new[] { "--log-dir", "-l" },
+            description: "Diretório onde os logs serão salvos (sobrescreve config)");
 
         var delimiterOption = new Option<string?>(
             aliases: new[] { "--delimiter", "-d" },
@@ -44,6 +44,10 @@ public class Program
         var maxLinesOption = new Option<int?>(
             aliases: new[] { "--max-lines", "-n" },
             description: "Número máximo de linhas a processar (sobrescreve config)");
+
+        var executionIdOption = new Option<string?>(
+            aliases: new[] { "--execution-id", "--exec-id" },
+            description: "UUID da execução para continuar de um checkpoint existente");
 
         // Opções de API
         var endpointOption = new Option<string?>(
@@ -71,29 +75,25 @@ public class Program
             aliases: new[] { "--dry-run", "--test" },
             description: "Modo de teste: não faz requisições reais");
 
-        var resetCheckpointOption = new Option<bool>(
-            aliases: new[] { "--reset-checkpoint", "--reset" },
-            description: "Reinicia o checkpoint e processa o arquivo desde o início");
-
         // Adicionar opções ao comando raiz
         rootCommand.AddOption(configOption);
         rootCommand.AddOption(inputOption);
         rootCommand.AddOption(batchLinesOption);
-        rootCommand.AddOption(logPathOption);
+        rootCommand.AddOption(logDirectoryOption);
         rootCommand.AddOption(delimiterOption);
         rootCommand.AddOption(startLineOption);
         rootCommand.AddOption(maxLinesOption);
+        rootCommand.AddOption(executionIdOption);
         rootCommand.AddOption(endpointOption);
         rootCommand.AddOption(authTokenOption);
         rootCommand.AddOption(methodOption);
         rootCommand.AddOption(timeoutOption);
         rootCommand.AddOption(verboseOption);
         rootCommand.AddOption(dryRunOption);
-        rootCommand.AddOption(resetCheckpointOption);
 
         // Handler do comando usando binding individual (limitado a 8 parâmetros)
         rootCommand.SetHandler(
-            async (configPath, inputPath, batchLines, logPath, delimiter, startLine, endpoint, verbose) =>
+            async (configPath, inputPath, batchLines, logDir, delimiter, startLine, endpoint, verbose) =>
             {
                 // Obter método e timeout do ParseResult se necessário
                 var parseResult = rootCommand.Parse(args);
@@ -102,14 +102,14 @@ public class Program
                 var timeout = parseResult.GetValueForOption(timeoutOption);
                 var dryRun = parseResult.GetValueForOption(dryRunOption);
                 var maxLines = parseResult.GetValueForOption(maxLinesOption);
-                var resetCheckpoint = parseResult.GetValueForOption(resetCheckpointOption);
+                var executionId = parseResult.GetValueForOption(executionIdOption);
                 
-                await ProcessCsvAsync(configPath, inputPath, batchLines, logPath, delimiter, startLine, maxLines, endpoint, authToken, method, timeout, verbose, dryRun, resetCheckpoint);
+                await ProcessCsvAsync(configPath, inputPath, batchLines, logDir, delimiter, startLine, maxLines, executionId, endpoint, authToken, method, timeout, verbose, dryRun);
             },
             configOption,
             inputOption,
             batchLinesOption,
-            logPathOption,
+            logDirectoryOption,
             delimiterOption,
             startLineOption,
             endpointOption,
@@ -123,17 +123,17 @@ public class Program
         string configPath,
         string? inputPath,
         int? batchLines,
-        string? logPath,
+        string? logDirectory,
         string? delimiter,
         int? startLine,
         int? maxLines,
+        string? executionId,
         string? endpoint,
         string? authToken,
         string? method,
         int? timeout,
         bool verbose,
-        bool dryRun,
-        bool resetCheckpoint)
+        bool dryRun)
     {
         try
         {
@@ -145,23 +145,26 @@ public class Program
                 Environment.Exit(1);
             }
 
+            // Gerar ou usar executionId existente
+            var currentExecutionId = executionId ?? Guid.NewGuid().ToString();
+            
             // Criar opções de linha de comando
             var cmdOptions = new CommandLineOptions
             {
                 ConfigPath = configPath,
                 InputPath = inputPath,
                 BatchLines = batchLines,
-                LogPath = logPath,
+                LogDirectory = logDirectory,
                 CsvDelimiter = delimiter,
                 StartLine = startLine,
                 MaxLines = maxLines,
+                ExecutionId = currentExecutionId,
                 EndpointUrl = endpoint,
                 AuthToken = authToken,
                 Method = method,
                 RequestTimeout = timeout,
                 Verbose = verbose,
-                DryRun = dryRun,
-                ResetCheckpoint = resetCheckpoint
+                DryRun = dryRun
             };
 
             if (verbose)
@@ -198,15 +201,19 @@ public class Program
             // Criar diretórios necessários
             configService.EnsureDirectoriesExist(config);
 
-            // Resetar checkpoint se solicitado (via linha de comando ou config.yaml)
-            if (config.File.ResetCheckpoint && !string.IsNullOrWhiteSpace(config.File.CheckpointPath))
+            // Exibir UUID da execução
+            Console.WriteLine($"🆔 Execution ID: {currentExecutionId}");
+            if (executionId != null)
             {
-                if (File.Exists(config.File.CheckpointPath))
-                {
-                    File.Delete(config.File.CheckpointPath);
-                    Console.WriteLine("🔄 Checkpoint resetado. Processamento iniciará do início.");
-                }
+                Console.WriteLine($"🔄 Continuando execução existente");
             }
+            else
+            {
+                Console.WriteLine($"✨ Nova execução iniciada");
+            }
+
+            // Gerar caminhos de execução
+            var executionPaths = configService.GenerateExecutionPaths(config, currentExecutionId);
 
             // Inicializar ApiClientService com a configuração da API e MetricsService
             var apiClientService = new ApiClientService(loggingService, config.Api, metricsService);
@@ -220,7 +227,7 @@ public class Program
             Console.WriteLine("🚀 Iniciando processamento do arquivo CSV...");
 
             // Processar arquivo CSV
-            await processorService.ProcessCsvFileAsync(config, dryRun);
+            await processorService.ProcessCsvFileAsync(config, executionPaths, dryRun);
 
             Console.WriteLine("✅ Processamento concluído com sucesso!");
         }

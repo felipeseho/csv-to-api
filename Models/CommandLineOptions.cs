@@ -11,10 +11,11 @@ public class CommandLineOptions
     // Configurações de arquivo
     public string? InputPath { get; set; }
     public int? BatchLines { get; set; }
-    public string? LogPath { get; set; }
+    public string? LogDirectory { get; set; }
     public string? CsvDelimiter { get; set; }
     public int? StartLine { get; set; }
     public int? MaxLines { get; set; }
+    public string? ExecutionId { get; set; }
     
     // Configurações de API
     public string? EndpointUrl { get; set; }
@@ -26,5 +27,4 @@ public class CommandLineOptions
     public bool Verbose { get; set; }
     public int? MaxParallelism { get; set; }
     public bool DryRun { get; set; }
-    public bool ResetCheckpoint { get; set; }
 }

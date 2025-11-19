@@ -48,6 +48,24 @@ dotnet run -- -n 500
 dotnet run -- -i data/vendas.csv -n 100 -v
 
 # Combinar com linha inicial para processar um intervalo específico
+```
+
+### Execution ID (Controle de Checkpoint)
+```bash
+# Nova execução (gera UUID automaticamente)
+dotnet run
+
+# Continuar execução existente usando o UUID
+dotnet run -- --execution-id 6869cdf3-5fb0-4178-966d-9a21015ffb4d
+dotnet run -- --exec-id 6869cdf3-5fb0-4178-966d-9a21015ffb4d
+
+# Processar mais linhas em uma execução existente
+dotnet run -- --execution-id 6869cdf3-5fb0-4178-966d-9a21015ffb4d --max-lines 1000
+
+# Cada execução tem seus próprios arquivos de log e checkpoint:
+# - logs/process_{uuid}.log
+# - checkpoints/checkpoint_{uuid}.json
+```
 # Exemplo: processar linhas 101 a 200
 dotnet run -- -s 101 -n 100 -v
 ```

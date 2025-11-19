@@ -35,7 +35,7 @@ public class CsvProcessorService
     /// <summary>
     /// Processa arquivo CSV completo
     /// </summary>
-    public async Task ProcessCsvFileAsync(Configuration config, bool dryRun = false)
+    public async Task ProcessCsvFileAsync(Configuration config, ExecutionPaths executionPaths, bool dryRun = false)
     {
         using var httpClient = _apiClientService.CreateHttpClient(config.Api);
 
@@ -68,9 +68,9 @@ public class CsvProcessorService
         Checkpoint? checkpoint = null;
         var startLineFromCheckpoint = config.File.StartLine;
         
-        if (!string.IsNullOrWhiteSpace(config.File.CheckpointPath))
+        if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath))
         {
-            checkpoint = _checkpointService.LoadCheckpoint(config.File.CheckpointPath);
+            checkpoint = _checkpointService.LoadCheckpoint(executionPaths.CheckpointPath);
             if (checkpoint != null)
             {
                 Console.WriteLine($"📍 Checkpoint encontrado! Retomando da linha {checkpoint.LastProcessedLine + 1}");
@@ -124,7 +124,7 @@ public class CsvProcessorService
             var validationError = _validationService.ValidateRecord(record, config.File.Mapping);
             if (validationError != null)
             {
-                await _loggingService.LogError(config.File.LogPath, record, 400, validationError, headers);
+                await _loggingService.LogError(executionPaths.LogPath, record, 400, validationError, headers);
                 totalErrors++;
                 _metricsService.RecordValidationError();
                 continue;
@@ -140,7 +140,7 @@ public class CsvProcessorService
             if (shouldProcessBatch)
             {
                 var batchTimer = Stopwatch.StartNew();
-                var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, headers, dryRun);
+                var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
                 batchTimer.Stop();
                 
                 _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
@@ -158,11 +158,11 @@ public class CsvProcessorService
                 }
 
                 // Salvar checkpoint periodicamente
-                if (!string.IsNullOrWhiteSpace(config.File.CheckpointPath) && 
+                if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath) && 
                     (DateTime.Now - lastCheckpointSave).TotalSeconds >= checkpointIntervalSeconds)
                 {
                     await _checkpointService.SaveCheckpointAsync(
-                        config.File.CheckpointPath, 
+                        executionPaths.CheckpointPath, 
                         lineNumber, 
                         totalProcessed, 
                         totalSuccess, 
@@ -183,7 +183,7 @@ public class CsvProcessorService
         if (batch.Count > 0)
         {
             var batchTimer = Stopwatch.StartNew();
-            var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, headers, dryRun);
+            var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
             batchTimer.Stop();
             
             _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
@@ -198,16 +198,16 @@ public class CsvProcessorService
         Console.WriteLine(); // Nova linha após progress update
 
         // Salvar checkpoint final
-        if (!string.IsNullOrWhiteSpace(config.File.CheckpointPath))
+        if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath))
         {
             await _checkpointService.SaveCheckpointAsync(
-                config.File.CheckpointPath, 
+                executionPaths.CheckpointPath, 
                 lineNumber, 
                 totalProcessed, 
                 totalSuccess, 
                 totalErrors);
             
-            Console.WriteLine($"💾 Checkpoint salvo em: {config.File.CheckpointPath}");
+            Console.WriteLine($"💾 Checkpoint salvo em: {executionPaths.CheckpointPath}");
         }
 
         // Exibir dashboard final
