@@ -38,6 +38,20 @@ dotnet run -- -s 500
 dotnet run -- -i data/vendas.csv -s 1001 -v
 ```
 
+### Limitar Quantidade de Linhas
+```bash
+# Processar apenas as primeiras 1000 linhas
+dotnet run -- --max-lines 1000
+dotnet run -- -n 500
+
+# Útil para testes ou processamento parcial
+dotnet run -- -i data/vendas.csv -n 100 -v
+
+# Combinar com linha inicial para processar um intervalo específico
+# Exemplo: processar linhas 101 a 200
+dotnet run -- -s 101 -n 100 -v
+```
+
 ### Configurar Endpoint da API
 ```bash
 # Apontar para API diferente
@@ -95,6 +109,7 @@ dotnet run -- \
   -i data/test.csv \
   -e http://localhost:3000/api/users \
   -b 10 \
+  -n 50 \
   -v
 ```
 

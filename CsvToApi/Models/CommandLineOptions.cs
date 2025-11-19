@@ -14,6 +14,7 @@ public class CommandLineOptions
     public string? LogPath { get; set; }
     public string? CsvDelimiter { get; set; }
     public int? StartLine { get; set; }
+    public int? MaxLines { get; set; }
     
     // Configurações de API
     public string? EndpointUrl { get; set; }

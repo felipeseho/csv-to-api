@@ -84,6 +84,7 @@ Todos os argumentos são opcionais e sobrescrevem as configurações do arquivo 
 | `--input` | `-i` | Caminho do arquivo CSV de entrada | `--input data/vendas.csv` |
 | `--batch-lines` | `-b` | Número de linhas por lote | `--batch-lines 500` |
 | `--start-line` | `-s` | Linha inicial para começar o processamento | `--start-line 100` |
+| `--max-lines` | `-n` | Número máximo de linhas a processar | `--max-lines 1000` |
 | `--log-path` | `-l` | Caminho do arquivo de log | `--log-path logs/erros.log` |
 | `--delimiter` | `-d` | Delimitador do CSV | `--delimiter ";"` |
 | `--endpoint` | `-e` | URL do endpoint da API | `--endpoint https://api.com/upload` |
@@ -120,12 +121,23 @@ dotnet run -- -i data/export.csv -d ";" -v
 dotnet run -- -i data/vendas.csv -s 1001 -v
 ```
 
+**Processar apenas as primeiras N linhas (útil para testes):**
+```bash
+# Processar apenas as primeiras 100 linhas
+dotnet run -- -i data/vendas.csv -n 100 -v
+
+# Processar um intervalo específico (ex: linhas 101-200)
+dotnet run -- -i data/vendas.csv -s 101 -n 100 -v
+```
+
 ## Configuração (config.yaml)
 
 ```yaml
 file:
     inputPath: "data/input.csv"           # Caminho do arquivo CSV
     batchLines: 100                       # Número de linhas por lote
+    startLine: 1                          # Linha inicial (padrão: 1)
+    maxLines: 1000                        # Número máximo de linhas a processar (opcional)
     logPath: "logs/process.log"           # Arquivo de log de erros
     csvDelimiter: ","                     # Delimitador do CSV
     mapping:                              # Validações de colunas

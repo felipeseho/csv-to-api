@@ -103,10 +103,18 @@ public class CsvProcessorService
         var lastMetricsDisplay = DateTime.Now;
         var checkpointIntervalSeconds = 30; // Salvar checkpoint a cada 30 segundos
         var metricsDisplayIntervalSeconds = 5; // Atualizar métricas a cada 5 segundos
+        var linesProcessedCount = 0; // Contador de linhas processadas (sem contar as puladas)
 
         while (await csv.ReadAsync())
         {
             lineNumber++;
+            
+            // Verificar se atingiu o limite máximo de linhas a processar
+            if (config.File.MaxLines.HasValue && linesProcessedCount >= config.File.MaxLines.Value)
+            {
+                Console.WriteLine($"⚠️  Limite de {config.File.MaxLines.Value} linhas processadas atingido. Encerrando...");
+                break;
+            }
             
             var record = new CsvRecord
             {
@@ -129,6 +137,7 @@ public class CsvProcessorService
                 continue;
             }
 
+            linesProcessedCount++; // Incrementar apenas linhas válidas processadas
             batch.Add(record);
 
             // Processar lote quando atingir o tamanho configurado

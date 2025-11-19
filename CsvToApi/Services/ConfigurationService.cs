@@ -43,6 +43,9 @@ public class ConfigurationService
         if (options.StartLine.HasValue)
             config.File.StartLine = options.StartLine.Value;
         
+        if (options.MaxLines.HasValue)
+            config.File.MaxLines = options.MaxLines.Value;
+        
         // Sobrescrever configurações de API se fornecidas
         if (!string.IsNullOrWhiteSpace(options.EndpointUrl))
             config.Api.EndpointUrl = options.EndpointUrl;

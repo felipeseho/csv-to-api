@@ -41,6 +41,10 @@ public class Program
             aliases: new[] { "--start-line", "-s" },
             description: "Linha inicial para começar o processamento (sobrescreve config)");
 
+        var maxLinesOption = new Option<int?>(
+            aliases: new[] { "--max-lines", "-n" },
+            description: "Número máximo de linhas a processar (sobrescreve config)");
+
         // Opções de API
         var endpointOption = new Option<string?>(
             aliases: new[] { "--endpoint", "-e" },
@@ -74,6 +78,7 @@ public class Program
         rootCommand.AddOption(logPathOption);
         rootCommand.AddOption(delimiterOption);
         rootCommand.AddOption(startLineOption);
+        rootCommand.AddOption(maxLinesOption);
         rootCommand.AddOption(endpointOption);
         rootCommand.AddOption(authTokenOption);
         rootCommand.AddOption(methodOption);
@@ -91,8 +96,9 @@ public class Program
                 var method = parseResult.GetValueForOption(methodOption);
                 var timeout = parseResult.GetValueForOption(timeoutOption);
                 var dryRun = parseResult.GetValueForOption(dryRunOption);
+                var maxLines = parseResult.GetValueForOption(maxLinesOption);
                 
-                await ProcessCsvAsync(configPath, inputPath, batchLines, logPath, delimiter, startLine, endpoint, authToken, method, timeout, verbose, dryRun);
+                await ProcessCsvAsync(configPath, inputPath, batchLines, logPath, delimiter, startLine, maxLines, endpoint, authToken, method, timeout, verbose, dryRun);
             },
             configOption,
             inputOption,
@@ -114,6 +120,7 @@ public class Program
         string? logPath,
         string? delimiter,
         int? startLine,
+        int? maxLines,
         string? endpoint,
         string? authToken,
         string? method,
@@ -140,6 +147,7 @@ public class Program
                 LogPath = logPath,
                 CsvDelimiter = delimiter,
                 StartLine = startLine,
+                MaxLines = maxLines,
                 EndpointUrl = endpoint,
                 AuthToken = authToken,
                 Method = method,
@@ -155,6 +163,7 @@ public class Program
                 if (inputPath != null) Console.WriteLine($"  Input: {inputPath}");
                 if (batchLines != null) Console.WriteLine($"  Batch Lines: {batchLines}");
                 if (startLine != null) Console.WriteLine($"  Start Line: {startLine}");
+                if (maxLines != null) Console.WriteLine($"  Max Lines: {maxLines}");
                 if (endpoint != null) Console.WriteLine($"  Endpoint: {endpoint}");
                 if (dryRun) Console.WriteLine($"  🔍 MODO DRY RUN ATIVADO");
             }
