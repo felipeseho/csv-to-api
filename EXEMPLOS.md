@@ -299,3 +299,92 @@ dotnet run -- \
 # Interrompa após processar linhas suficientes (Ctrl+C)
 ```
 
+## Exemplo 4: Usando Valores Fixos
+
+### Cenário: Importação de dados com metadados
+
+Quando você precisa enviar dados do CSV junto com informações fixas (como origem da importação, versão da API, tenant ID, etc.):
+
+```yaml
+api:
+    endpointUrl: "https://api.exemplo.com/v1/clientes"
+    authToken: "Bearer xyz123..."
+    method: "POST"
+    requestTimeout: 30
+    mapping:
+      # Dados dinâmicos do CSV
+      - attribute: "nome"
+        csvColumn: "Nome"
+      - attribute: "email"
+        csvColumn: "Email"
+      - attribute: "telefone"
+        csvColumn: "Telefone"
+      
+      # Valores fixos (metadados)
+      - attribute: "origem"
+        fixedValue: "importacao-csv"
+      - attribute: "versaoApi"
+        fixedValue: "v1"
+      - attribute: "tenantId"
+        fixedValue: "empresa-123"
+      - attribute: "ambiente"
+        fixedValue: "producao"
+```
+
+### CSV de Entrada
+```csv
+Nome,Email,Telefone
+João Silva,joao@email.com,11999998888
+Maria Santos,maria@email.com,11988887777
+```
+
+### Payload Gerado
+Cada linha do CSV gera um payload com dados dinâmicos + valores fixos:
+
+```json
+{
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "telefone": "11999998888",
+  "origem": "importacao-csv",
+  "versaoApi": "v1",
+  "tenantId": "empresa-123",
+  "ambiente": "producao"
+}
+```
+
+### Casos de Uso para Valores Fixos
+
+1. **Identificação da origem dos dados**
+   ```yaml
+   - attribute: "source"
+     fixedValue: "csv-batch-import"
+   ```
+
+2. **Tenant ID em sistemas multi-tenant**
+   ```yaml
+   - attribute: "tenantId"
+     fixedValue: "cliente-xyz"
+   ```
+
+3. **Versão da API ou formato**
+   ```yaml
+   - attribute: "apiVersion"
+     fixedValue: "2.0"
+   ```
+
+4. **Status padrão para novos registros**
+   ```yaml
+   - attribute: "status"
+     fixedValue: "pending"
+   ```
+
+5. **Metadados de importação**
+   ```yaml
+   - attribute: "metadata.importedAt"
+     fixedValue: "2024-01-15"
+   - attribute: "metadata.importedBy"
+     fixedValue: "sistema-batch"
+   ```
+
+

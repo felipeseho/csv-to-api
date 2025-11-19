@@ -6,7 +6,8 @@ namespace CsvToApi.Models;
 public class ApiMapping
 {
     public string Attribute { get; set; } = string.Empty;
-    public string CsvColumn { get; set; } = string.Empty;
+    public string? CsvColumn { get; set; }
     public string? Transform { get; set; }
+    public string? FixedValue { get; set; }
 }
 

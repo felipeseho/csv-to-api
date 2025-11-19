@@ -38,3 +38,8 @@ api:
         transform: "title-case"
       - attribute: "birthdate"
         csvColumn: "Birthdate"
+      # Exemplo de parâmetro com valor fixo
+      - attribute: "source"
+        fixedValue: "csv-import"
+      - attribute: "version"
+        fixedValue: "1.0"

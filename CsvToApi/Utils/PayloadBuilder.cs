@@ -16,13 +16,23 @@ public static class PayloadBuilder
 
         foreach (var mapping in mappings)
         {
-            if (!record.Data.TryGetValue(mapping.CsvColumn, out var value))
+            string transformedValue;
+            
+            // Se há um valor fixo, usá-lo diretamente
+            if (!string.IsNullOrEmpty(mapping.FixedValue))
+            {
+                transformedValue = mapping.FixedValue;
+            }
+            // Caso contrário, buscar valor da coluna CSV
+            else if (!string.IsNullOrEmpty(mapping.CsvColumn) && record.Data.TryGetValue(mapping.CsvColumn, out var value))
+            {
+                // Aplicar transformação se especificada
+                transformedValue = DataTransformer.ApplyTransformation(value, mapping.Transform);
+            }
+            else
             {
                 continue;
             }
-
-            // Aplicar transformação se especificada
-            var transformedValue = DataTransformer.ApplyTransformation(value, mapping.Transform);
 
             // Suportar atributos aninhados (ex: "address.street")
             var parts = mapping.Attribute.Split('.');

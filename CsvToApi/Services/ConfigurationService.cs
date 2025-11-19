@@ -79,6 +79,32 @@ public class ConfigurationService
             return false;
         }
 
+        // Validar mappings da API
+        foreach (var mapping in config.Api.Mapping)
+        {
+            if (string.IsNullOrWhiteSpace(mapping.Attribute))
+            {
+                Console.WriteLine("Mapping da API deve ter um 'attribute' definido");
+                return false;
+            }
+
+            // Cada mapping deve ter FixedValue OU CsvColumn, mas não ambos
+            var hasFixedValue = !string.IsNullOrWhiteSpace(mapping.FixedValue);
+            var hasCsvColumn = !string.IsNullOrWhiteSpace(mapping.CsvColumn);
+
+            if (!hasFixedValue && !hasCsvColumn)
+            {
+                Console.WriteLine($"Mapping para '{mapping.Attribute}' deve ter 'fixedValue' ou 'csvColumn' definido");
+                return false;
+            }
+
+            if (hasFixedValue && hasCsvColumn)
+            {
+                Console.WriteLine($"Mapping para '{mapping.Attribute}' não pode ter 'fixedValue' e 'csvColumn' ao mesmo tempo");
+                return false;
+            }
+        }
+
         return true;
     }
 

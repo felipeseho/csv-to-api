@@ -157,13 +157,18 @@ api:
     requestTimeout: 30                    # Timeout em segundos
     mapping:                              # Mapeamento CSV -> API
       - attribute: "name"
-        csvColumn: "Name"
+        csvColumn: "Name"                 # Valor vem da coluna CSV
       - attribute: "email"
         csvColumn: "Email"
       - attribute: "address.street"       # Suporta atributos aninhados
         csvColumn: "Street"
       - attribute: "birthdate"
         csvColumn: "Birthdate"
+      # Parâmetros com valores fixos (não vêm do CSV)
+      - attribute: "source"
+        fixedValue: "csv-import"          # Valor fixo para todos os registros
+      - attribute: "version"
+        fixedValue: "1.0"
 ```
 
 ## Formato do Arquivo de Log
@@ -212,6 +217,8 @@ A aplicação foi otimizada para processar grandes volumes de dados:
 
 ## Exemplos de Payload da API
 
+### Payload com dados do CSV e valores fixos
+
 Com a configuração acima, cada linha do CSV gera um payload como:
 
 ```json
@@ -221,9 +228,29 @@ Com a configuração acima, cada linha do CSV gera um payload como:
   "address": {
     "street": "123 Main St"
   },
-  "birthdate": "1990-05-15"
+  "birthdate": "1990-05-15",
+  "source": "csv-import",
+  "version": "1.0"
 }
 ```
+
+### Diferença entre csvColumn e fixedValue
+
+No mapeamento da API, você pode usar:
+
+- **csvColumn**: O valor vem da coluna correspondente no CSV (diferente para cada linha)
+  ```yaml
+  - attribute: "name"
+    csvColumn: "Name"  # Valor varia por linha
+  ```
+
+- **fixedValue**: O valor é fixo para todos os registros (mesmo valor em todas as linhas)
+  ```yaml
+  - attribute: "source"
+    fixedValue: "csv-import"  # Sempre "csv-import"
+  ```
+
+**Importante**: Cada mapping deve ter **OU** `csvColumn` **OU** `fixedValue`, mas não ambos.
 
 ## Tratamento de Erros
 
