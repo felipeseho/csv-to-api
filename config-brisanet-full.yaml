@@ -1,8 +1,8 @@
 file:
     inputPath: "/users/felipeseho/Desktop/bases/brisanet-full.csv"
-    batchLines: 100
+    batchLines: 200
     startLine: 1
-    maxLines: 100  # Opcional: limita o número de linhas a processar (útil para testes)
+    # maxLines: 50  # Opcional: limita o número de linhas a processar (útil para testes)
     logDirectory: "logs"  # Diretório onde os logs serão salvos
     csvDelimiter: ";"
     checkpointDirectory: "checkpoints"  # Diretório onde os checkpoints serão salvos
@@ -11,6 +11,9 @@ file:
           type: "string"
         - column: "campaign"
           type: "string"
+          filter:
+            operator: "NotEquals"
+            value: "Produto Revan - sem código campanha"
         - column: "sub_partner"
           type: "string"
         - column: "start_date"
@@ -53,7 +56,7 @@ endpoints:
     requestTimeout: 30
     retryAttempts: 3
     retryDelaySeconds: 5
-    maxRequestsPerSecond: 20
+    maxRequestsPerSecond: 100
     mapping:
       - attribute: "event"
         fixedValue: "subscription_create"

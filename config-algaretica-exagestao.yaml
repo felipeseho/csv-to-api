@@ -11,9 +11,6 @@ file:
           type: "string"
         - column: "campaign"
           type: "string"
-          filter:
-            operator: "NotEquals"
-            value: "Produto Revan - sem código campanha"
         - column: "partner"
           type: "string"
         - column: "start_date"
