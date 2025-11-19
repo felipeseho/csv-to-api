@@ -1,5 +1,5 @@
 file:
-    inputPath: "/users/felipeseho/Desktop/bases/brisanet_full.csv"
+    inputPath: "/users/felipeseho/Desktop/bases/brisanet-full.csv"
     batchLines: 100
     startLine: 1
     maxLines: 100  # Opcional: limita o número de linhas a processar (útil para testes)
@@ -11,14 +11,11 @@ file:
           type: "string"
         - column: "campaign"
           type: "string"
-          filter:
-            operator: "NotEquals"
-            value: "Produto Revan - sem código campanha"
         - column: "sub_partner"
           type: "string"
         - column: "start_date"
           type: "date"
-          format: "DD/MM/YYYY"
+          format: "dd/MM/yyyy"
         - column: "cpf"
           type: "string"
         - column: "email"
@@ -30,8 +27,11 @@ file:
           type: "string"
         - column: "end_date"
           type: "date"
-          format: "DD/MM/YYYY"
-
+          format: "dd/MM/yyyy"
+          filter:
+            operator: "Contains"
+            value: "9999"
+            
 # Nome da coluna CSV que contém o nome do endpoint a ser usado (opcional)
 # Se configurada, cada linha pode especificar qual endpoint usar
 # endpointColumnName: "Endpoint"
@@ -53,7 +53,7 @@ endpoints:
     requestTimeout: 30
     retryAttempts: 3
     retryDelaySeconds: 5
-    maxRequestsPerSecond: 10
+    maxRequestsPerSecond: 20
     mapping:
       - attribute: "event"
         fixedValue: "subscription_create"
