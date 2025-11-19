@@ -1,4 +1,5 @@
 using CsvToApi.Models;
+using Spectre.Console;
 
 namespace CsvToApi.Services;
 
@@ -52,11 +53,46 @@ public class LoggingService
             values.Add(escapedError);
 
             await writer.WriteLineAsync(string.Join(",", values));
+            
+            // Log visual no console com Spectre
+            AnsiConsole.MarkupLine($"[red]✗ Erro linha {record.LineNumber}:[/] [grey]{EscapeMarkup(errorMessage)}[/]");
         }
         finally
         {
             _logSemaphore.Release();
         }
+    }
+    
+    /// <summary>
+    /// Escapa caracteres especiais do markup do Spectre.Console
+    /// </summary>
+    private static string EscapeMarkup(string text)
+    {
+        return text.Replace("[", "[[").Replace("]", "]]");
+    }
+    
+    /// <summary>
+    /// Exibe informação no console
+    /// </summary>
+    public void LogInfo(string message)
+    {
+        AnsiConsole.MarkupLine($"[cyan1]ℹ[/] {EscapeMarkup(message)}");
+    }
+    
+    /// <summary>
+    /// Exibe aviso no console
+    /// </summary>
+    public void LogWarning(string message)
+    {
+        AnsiConsole.MarkupLine($"[yellow]⚠[/] {EscapeMarkup(message)}");
+    }
+    
+    /// <summary>
+    /// Exibe sucesso no console
+    /// </summary>
+    public void LogSuccess(string message)
+    {
+        AnsiConsole.MarkupLine($"[green]✓[/] {EscapeMarkup(message)}");
     }
 }
 

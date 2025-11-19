@@ -4,6 +4,7 @@ using System.IO;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvToApi.Models;
+using Spectre.Console;
 
 namespace CsvToApi.Services;
 
@@ -47,8 +48,21 @@ public class CsvProcessorService
         };
 
         // Contar total de linhas primeiro
-        var totalLines = CountCsvLines(config.File.InputPath);
-        _metricsService.StartProcessing(totalLines);
+        int totalLines = 0;
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .SpinnerStyle(Style.Parse("cyan1"))
+            .StartAsync("[cyan1]Contando linhas do arquivo...[/]", async ctx =>
+            {
+                await Task.Run(() =>
+                {
+                    totalLines = CountCsvLines(config.File.InputPath);
+                    _metricsService.StartProcessing(totalLines);
+                });
+            });
+
+        AnsiConsole.MarkupLine($"[cyan1]📊 Total de linhas no arquivo:[/] [yellow]{totalLines}[/]");
+        AnsiConsole.WriteLine();
 
         using var reader = new StreamReader(config.File.InputPath);
         using var csv = new CsvReader(reader, csvConfig);
@@ -60,7 +74,7 @@ public class CsvProcessorService
 
         if (headers == null || headers.Length == 0)
         {
-            Console.WriteLine("Arquivo CSV não contém cabeçalho");
+            AnsiConsole.MarkupLine("[red]✗ Arquivo CSV não contém cabeçalho[/]");
             return;
         }
 
@@ -73,8 +87,8 @@ public class CsvProcessorService
             checkpoint = _checkpointService.LoadCheckpoint(executionPaths.CheckpointPath);
             if (checkpoint != null)
             {
-                Console.WriteLine($"📍 Checkpoint encontrado! Retomando da linha {checkpoint.LastProcessedLine + 1}");
-                Console.WriteLine($"   Progresso anterior: {checkpoint.SuccessCount} sucessos, {checkpoint.ErrorCount} erros");
+                AnsiConsole.MarkupLine($"[cyan1]📍 Checkpoint encontrado! Retomando da linha[/] [yellow]{checkpoint.LastProcessedLine + 1}[/]");
+                AnsiConsole.MarkupLine($"[grey]   Progresso anterior: {checkpoint.SuccessCount} sucessos, {checkpoint.ErrorCount} erros[/]");
                 startLineFromCheckpoint = checkpoint.LastProcessedLine + 1;
             }
         }
@@ -95,107 +109,122 @@ public class CsvProcessorService
 
         if (totalSkipped > 0)
         {
-            Console.WriteLine($"⏭️  Puladas {totalSkipped} linhas (iniciando na linha {startLineFromCheckpoint})");
+            AnsiConsole.MarkupLine($"[yellow]⏭️  Puladas {totalSkipped} linhas (iniciando na linha {startLineFromCheckpoint})[/]");
             _metricsService.RecordSkippedLines(totalSkipped);
         }
 
         var lastCheckpointSave = DateTime.Now;
-        var lastMetricsDisplay = DateTime.Now;
         var checkpointIntervalSeconds = 30; // Salvar checkpoint a cada 30 segundos
-        var metricsDisplayIntervalSeconds = 5; // Atualizar métricas a cada 5 segundos
         var linesProcessedCount = 0; // Contador de linhas processadas (sem contar as puladas)
 
-        while (await csv.ReadAsync())
-        {
-            lineNumber++;
-            
-            var record = new CsvRecord
+        // Processar com barra de progresso
+        await AnsiConsole.Progress()
+            .Columns(
+                new TaskDescriptionColumn(),
+                new ProgressBarColumn(),
+                new PercentageColumn(),
+                new RemainingTimeColumn(),
+                new SpinnerColumn())
+            .StartAsync(async ctx =>
             {
-                LineNumber = lineNumber,
-                Data = new Dictionary<string, string>()
-            };
+                var task = ctx.AddTask("[cyan1]Processando CSV[/]", maxValue: config.File.MaxLines ?? totalLines);
 
-            foreach (var header in headers)
-            {
-                record.Data[header] = csv.GetField(header) ?? string.Empty;
-            }
-
-            // Validar campos
-            var validationError = _validationService.ValidateRecord(record, config.File.Mapping);
-            if (validationError != null)
-            {
-                await _loggingService.LogError(executionPaths.LogPath, record, 400, validationError, headers);
-                totalErrors++;
-                _metricsService.RecordValidationError();
-                continue;
-            }
-
-            batch.Add(record);
-            linesProcessedCount++; // Incrementar após adicionar ao batch
-
-            // Processar lote quando atingir o tamanho configurado OU quando atingir o limite máximo de linhas
-            var shouldProcessBatch = batch.Count >= config.File.BatchLines ||
-                                    (config.File.MaxLines.HasValue && linesProcessedCount >= config.File.MaxLines.Value);
-            
-            if (shouldProcessBatch)
-            {
-                var batchTimer = Stopwatch.StartNew();
-                var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
-                batchTimer.Stop();
-                
-                _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
-                
-                totalProcessed += batch.Count;
-                totalErrors += errors;
-                totalSuccess += (batch.Count - errors);
-                batch.Clear();
-
-                // Exibir atualização de progresso
-                if ((DateTime.Now - lastMetricsDisplay).TotalSeconds >= metricsDisplayIntervalSeconds)
+                while (await csv.ReadAsync())
                 {
-                    _metricsService.DisplayProgressUpdate();
-                    lastMetricsDisplay = DateTime.Now;
+                    lineNumber++;
+                    
+                    var record = new CsvRecord
+                    {
+                        LineNumber = lineNumber,
+                        Data = new Dictionary<string, string>()
+                    };
+
+                    foreach (var header in headers)
+                    {
+                        record.Data[header] = csv.GetField(header) ?? string.Empty;
+                    }
+
+                    // Validar campos
+                    var validationError = _validationService.ValidateRecord(record, config.File.Mapping);
+                    if (validationError != null)
+                    {
+                        await _loggingService.LogError(executionPaths.LogPath, record, 400, validationError, headers);
+                        totalErrors++;
+                        _metricsService.RecordValidationError();
+                        continue;
+                    }
+
+                    batch.Add(record);
+                    linesProcessedCount++; // Incrementar após adicionar ao batch
+
+                    // Processar lote quando atingir o tamanho configurado OU quando atingir o limite máximo de linhas
+                    var shouldProcessBatch = batch.Count >= config.File.BatchLines ||
+                                            (config.File.MaxLines.HasValue && linesProcessedCount >= config.File.MaxLines.Value);
+                    
+                    if (shouldProcessBatch)
+                    {
+                        var batchTimer = Stopwatch.StartNew();
+                        var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
+                        batchTimer.Stop();
+                        
+                        _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
+                        
+                        totalProcessed += batch.Count;
+                        totalErrors += errors;
+                        totalSuccess += (batch.Count - errors);
+                        
+                        // Atualizar barra de progresso
+                        task.Increment(batch.Count);
+                        task.Description = $"[cyan1]Processando CSV[/] [grey]({totalSuccess} ✓ | {totalErrors} ✗)[/]";
+                        
+                        batch.Clear();
+
+                        // Salvar checkpoint periodicamente
+                        if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath) && 
+                            (DateTime.Now - lastCheckpointSave).TotalSeconds >= checkpointIntervalSeconds)
+                        {
+                            await _checkpointService.SaveCheckpointAsync(
+                                executionPaths.CheckpointPath, 
+                                lineNumber, 
+                                totalProcessed, 
+                                totalSuccess, 
+                                totalErrors);
+                            lastCheckpointSave = DateTime.Now;
+                        }
+                        
+                        // Verificar se atingiu o limite máximo de linhas após processar o batch
+                        if (config.File.MaxLines.HasValue && linesProcessedCount >= config.File.MaxLines.Value)
+                        {
+                            AnsiConsole.MarkupLine($"\n[green]✓ Limite de {config.File.MaxLines.Value} linhas processadas atingido. Encerrando...[/]");
+                            break;
+                        }
+                    }
                 }
 
-                // Salvar checkpoint periodicamente
-                if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath) && 
-                    (DateTime.Now - lastCheckpointSave).TotalSeconds >= checkpointIntervalSeconds)
+                // Processar lote restante
+                if (batch.Count > 0)
                 {
-                    await _checkpointService.SaveCheckpointAsync(
-                        executionPaths.CheckpointPath, 
-                        lineNumber, 
-                        totalProcessed, 
-                        totalSuccess, 
-                        totalErrors);
-                    lastCheckpointSave = DateTime.Now;
+                    var batchTimer = Stopwatch.StartNew();
+                    var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
+                    batchTimer.Stop();
+                    
+                    _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
+                    
+                    totalProcessed += batch.Count;
+                    totalErrors += errors;
+                    totalSuccess += (batch.Count - errors);
+                    
+                    // Atualizar barra de progresso final
+                    task.Increment(batch.Count);
+                    task.Description = $"[cyan1]Processando CSV[/] [grey]({totalSuccess} ✓ | {totalErrors} ✗)[/]";
                 }
                 
-                // Verificar se atingiu o limite máximo de linhas após processar o batch
-                if (config.File.MaxLines.HasValue && linesProcessedCount >= config.File.MaxLines.Value)
-                {
-                    Console.WriteLine($"✅ Limite de {config.File.MaxLines.Value} linhas processadas atingido. Encerrando...");
-                    break;
-                }
-            }
-        }
-
-        // Processar lote restante
-        if (batch.Count > 0)
-        {
-            var batchTimer = Stopwatch.StartNew();
-            var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
-            batchTimer.Stop();
-            
-            _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
-            
-            totalProcessed += batch.Count;
-            totalErrors += errors;
-            totalSuccess += (batch.Count - errors);
-        }
+                task.StopTask();
+            });
 
         // Finalizar métricas
         _metricsService.EndProcessing();
-        Console.WriteLine(); // Nova linha após progress update
+        AnsiConsole.WriteLine();
 
         // Salvar checkpoint final
         if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath))
@@ -207,9 +236,11 @@ public class CsvProcessorService
                 totalSuccess, 
                 totalErrors);
             
-            Console.WriteLine($"💾 Checkpoint salvo em: {executionPaths.CheckpointPath}");
+            AnsiConsole.MarkupLine($"[cyan1]💾 Checkpoint salvo em:[/] [grey]{executionPaths.CheckpointPath}[/]");
         }
 
+        AnsiConsole.WriteLine();
+        
         // Exibir dashboard final
         _metricsService.DisplayDashboard();
     }

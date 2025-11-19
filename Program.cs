@@ -1,6 +1,8 @@
 ﻿using CsvToApi.Models;
 using CsvToApi.Services;
-using System.CommandLine;
+using Spectre.Console;
+using Spectre.Console.Cli;
+using System.ComponentModel;
 
 namespace CsvToApi;
 
@@ -11,172 +13,154 @@ public class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        // Configurar opções de linha de comando
-        var rootCommand = new RootCommand("CSV to API - Processador de arquivos CSV grandes com envio para API REST");
+        // Criar aplicação CLI com Spectre.Console
+        var app = new CommandApp<ProcessCommand>();
+        app.Configure(config =>
+        {
+            config.SetApplicationName("csv-to-api");
+            config.ValidateExamples();
+        });
 
-        // Opções de configuração
-        var configOption = new Option<string>(
-            aliases: new[] { "--config", "-c" },
-            description: "Caminho do arquivo de configuração YAML",
-            getDefaultValue: () => "config.yaml");
+        try
+        {
+            return await app.RunAsync(args);
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.WriteException(ex, ExceptionFormats.ShortenEverything);
+            return 1;
+        }
+    }
+}
 
-        // Opções de arquivo CSV
-        var inputOption = new Option<string?>(
-            aliases: new[] { "--input", "-i" },
-            description: "Caminho do arquivo CSV de entrada (sobrescreve config)");
+/// <summary>
+/// Comando principal de processamento
+/// </summary>
+public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
+{
+    public class Settings : CommandSettings
+    {
+        [CommandOption("-c|--config")]
+        [Description("Caminho do arquivo de configuração YAML")]
+        [DefaultValue("config.yaml")]
+        public string ConfigPath { get; set; } = "config.yaml";
 
-        var batchLinesOption = new Option<int?>(
-            aliases: new[] { "--batch-lines", "-b" },
-            description: "Número de linhas por lote (sobrescreve config)");
+        [CommandOption("-i|--input")]
+        [Description("Caminho do arquivo CSV de entrada (sobrescreve config)")]
+        public string? InputPath { get; set; }
 
-        var logDirectoryOption = new Option<string?>(
-            aliases: new[] { "--log-dir", "-l" },
-            description: "Diretório onde os logs serão salvos (sobrescreve config)");
+        [CommandOption("-b|--batch-lines")]
+        [Description("Número de linhas por lote (sobrescreve config)")]
+        public int? BatchLines { get; set; }
 
-        var delimiterOption = new Option<string?>(
-            aliases: new[] { "--delimiter", "-d" },
-            description: "Delimitador do CSV (sobrescreve config)");
+        [CommandOption("-l|--log-dir")]
+        [Description("Diretório onde os logs serão salvos (sobrescreve config)")]
+        public string? LogDirectory { get; set; }
 
-        var startLineOption = new Option<int?>(
-            aliases: new[] { "--start-line", "-s" },
-            description: "Linha inicial para começar o processamento (sobrescreve config)");
+        [CommandOption("-d|--delimiter")]
+        [Description("Delimitador do CSV (sobrescreve config)")]
+        public string? Delimiter { get; set; }
 
-        var maxLinesOption = new Option<int?>(
-            aliases: new[] { "--max-lines", "-n" },
-            description: "Número máximo de linhas a processar (sobrescreve config)");
+        [CommandOption("-s|--start-line")]
+        [Description("Linha inicial para começar o processamento (sobrescreve config)")]
+        public int? StartLine { get; set; }
 
-        var executionIdOption = new Option<string?>(
-            aliases: new[] { "--execution-id", "--exec-id" },
-            description: "UUID da execução para continuar de um checkpoint existente");
+        [CommandOption("-n|--max-lines")]
+        [Description("Número máximo de linhas a processar (sobrescreve config)")]
+        public int? MaxLines { get; set; }
 
-        // Opções de API
-        var endpointOption = new Option<string?>(
-            aliases: new[] { "--endpoint", "-e" },
-            description: "URL do endpoint da API (sobrescreve config)");
+        [CommandOption("--exec-id|--execution-id")]
+        [Description("UUID da execução para continuar de um checkpoint existente")]
+        public string? ExecutionId { get; set; }
 
-        var authTokenOption = new Option<string?>(
-            aliases: new[] { "--auth-token", "-a" },
-            description: "Token de autenticação Bearer (sobrescreve config)");
+        [CommandOption("-e|--endpoint")]
+        [Description("URL do endpoint da API (sobrescreve config)")]
+        public string? Endpoint { get; set; }
 
-        var methodOption = new Option<string?>(
-            aliases: new[] { "--method", "-m" },
-            description: "Método HTTP: POST ou PUT (sobrescreve config)");
+        [CommandOption("-a|--auth-token")]
+        [Description("Token de autenticação Bearer (sobrescreve config)")]
+        public string? AuthToken { get; set; }
 
-        var timeoutOption = new Option<int?>(
-            aliases: new[] { "--timeout", "-t" },
-            description: "Timeout das requisições em segundos (sobrescreve config)");
+        [CommandOption("-m|--method")]
+        [Description("Método HTTP: POST ou PUT (sobrescreve config)")]
+        public string? Method { get; set; }
 
-        // Opções gerais
-        var verboseOption = new Option<bool>(
-            aliases: new[] { "--verbose", "-v" },
-            description: "Exibir logs detalhados");
+        [CommandOption("-t|--timeout")]
+        [Description("Timeout das requisições em segundos (sobrescreve config)")]
+        public int? Timeout { get; set; }
 
-        var dryRunOption = new Option<bool>(
-            aliases: new[] { "--dry-run", "--test" },
-            description: "Modo de teste: não faz requisições reais");
+        [CommandOption("-v|--verbose")]
+        [Description("Exibir logs detalhados")]
+        [DefaultValue(false)]
+        public bool Verbose { get; set; }
 
-        // Adicionar opções ao comando raiz
-        rootCommand.AddOption(configOption);
-        rootCommand.AddOption(inputOption);
-        rootCommand.AddOption(batchLinesOption);
-        rootCommand.AddOption(logDirectoryOption);
-        rootCommand.AddOption(delimiterOption);
-        rootCommand.AddOption(startLineOption);
-        rootCommand.AddOption(maxLinesOption);
-        rootCommand.AddOption(executionIdOption);
-        rootCommand.AddOption(endpointOption);
-        rootCommand.AddOption(authTokenOption);
-        rootCommand.AddOption(methodOption);
-        rootCommand.AddOption(timeoutOption);
-        rootCommand.AddOption(verboseOption);
-        rootCommand.AddOption(dryRunOption);
-
-        // Handler do comando usando binding individual (limitado a 8 parâmetros)
-        rootCommand.SetHandler(
-            async (configPath, inputPath, batchLines, logDir, delimiter, startLine, endpoint, verbose) =>
-            {
-                // Obter método e timeout do ParseResult se necessário
-                var parseResult = rootCommand.Parse(args);
-                var authToken = parseResult.GetValueForOption(authTokenOption);
-                var method = parseResult.GetValueForOption(methodOption);
-                var timeout = parseResult.GetValueForOption(timeoutOption);
-                var dryRun = parseResult.GetValueForOption(dryRunOption);
-                var maxLines = parseResult.GetValueForOption(maxLinesOption);
-                var executionId = parseResult.GetValueForOption(executionIdOption);
-                
-                await ProcessCsvAsync(configPath, inputPath, batchLines, logDir, delimiter, startLine, maxLines, executionId, endpoint, authToken, method, timeout, verbose, dryRun);
-            },
-            configOption,
-            inputOption,
-            batchLinesOption,
-            logDirectoryOption,
-            delimiterOption,
-            startLineOption,
-            endpointOption,
-            verboseOption);
-
-        // Executar comando
-        return await rootCommand.InvokeAsync(args);
+        [CommandOption("--dry-run|--test")]
+        [Description("Modo de teste: não faz requisições reais")]
+        [DefaultValue(false)]
+        public bool DryRun { get; set; }
     }
 
-    private static async Task ProcessCsvAsync(
-        string configPath,
-        string? inputPath,
-        int? batchLines,
-        string? logDirectory,
-        string? delimiter,
-        int? startLine,
-        int? maxLines,
-        string? executionId,
-        string? endpoint,
-        string? authToken,
-        string? method,
-        int? timeout,
-        bool verbose,
-        bool dryRun)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         try
         {
+            // Exibir banner
+            AnsiConsole.Write(
+                new FigletText("CSV to API")
+                    .Centered()
+                    .Color(Color.Cyan1));
+
+            AnsiConsole.WriteLine();
+            
             // Verificar se o arquivo de configuração existe
-            if (!File.Exists(configPath))
+            if (!File.Exists(settings.ConfigPath))
             {
-                Console.WriteLine($"❌ Arquivo de configuração não encontrado: {configPath}");
-                Console.WriteLine("💡 Use: CsvToApi --config caminho/do/arquivo.yaml");
-                Environment.Exit(1);
+                AnsiConsole.MarkupLine($"[red]✗[/] Arquivo de configuração não encontrado: [yellow]{settings.ConfigPath}[/]");
+                AnsiConsole.MarkupLine("[grey]💡 Use: csv-to-api --config caminho/do/arquivo.yaml[/]");
+                return 1;
             }
 
             // Gerar ou usar executionId existente
-            var currentExecutionId = executionId ?? Guid.NewGuid().ToString();
+            var currentExecutionId = settings.ExecutionId ?? Guid.NewGuid().ToString();
             
             // Criar opções de linha de comando
             var cmdOptions = new CommandLineOptions
             {
-                ConfigPath = configPath,
-                InputPath = inputPath,
-                BatchLines = batchLines,
-                LogDirectory = logDirectory,
-                CsvDelimiter = delimiter,
-                StartLine = startLine,
-                MaxLines = maxLines,
+                ConfigPath = settings.ConfigPath,
+                InputPath = settings.InputPath,
+                BatchLines = settings.BatchLines,
+                LogDirectory = settings.LogDirectory,
+                CsvDelimiter = settings.Delimiter,
+                StartLine = settings.StartLine,
+                MaxLines = settings.MaxLines,
                 ExecutionId = currentExecutionId,
-                EndpointUrl = endpoint,
-                AuthToken = authToken,
-                Method = method,
-                RequestTimeout = timeout,
-                Verbose = verbose,
-                DryRun = dryRun
+                EndpointUrl = settings.Endpoint,
+                AuthToken = settings.AuthToken,
+                Method = settings.Method,
+                RequestTimeout = settings.Timeout,
+                Verbose = settings.Verbose,
+                DryRun = settings.DryRun
             };
 
-            if (verbose)
+            // Mostrar configuração se verbose
+            if (settings.Verbose)
             {
-                Console.WriteLine("📋 Configuração carregada:");
-                Console.WriteLine($"  Config: {configPath}");
-                if (inputPath != null) Console.WriteLine($"  Input: {inputPath}");
-                if (batchLines != null) Console.WriteLine($"  Batch Lines: {batchLines}");
-                if (startLine != null) Console.WriteLine($"  Start Line: {startLine}");
-                if (maxLines != null) Console.WriteLine($"  Max Lines: {maxLines}");
-                if (endpoint != null) Console.WriteLine($"  Endpoint: {endpoint}");
-                if (dryRun) Console.WriteLine($"  🔍 MODO DRY RUN ATIVADO");
+                var configTable = new Table()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Grey)
+                    .AddColumn(new TableColumn("[cyan1]Configuração[/]").Centered())
+                    .AddColumn(new TableColumn("[cyan1]Valor[/]"));
+
+                configTable.AddRow("Config", settings.ConfigPath);
+                if (settings.InputPath != null) configTable.AddRow("Input", settings.InputPath);
+                if (settings.BatchLines != null) configTable.AddRow("Batch Lines", settings.BatchLines.ToString()!);
+                if (settings.StartLine != null) configTable.AddRow("Start Line", settings.StartLine.ToString()!);
+                if (settings.MaxLines != null) configTable.AddRow("Max Lines", settings.MaxLines.ToString()!);
+                if (settings.Endpoint != null) configTable.AddRow("Endpoint", settings.Endpoint);
+                if (settings.DryRun) configTable.AddRow("[yellow]Modo[/]", "[yellow]DRY RUN[/]");
+
+                AnsiConsole.Write(configTable);
+                AnsiConsole.WriteLine();
             }
 
             // Inicializar serviços
@@ -187,7 +171,19 @@ public class Program
             var metricsService = new MetricsService();
 
             // Carregar configuração do YAML
-            var config = configService.LoadConfiguration(configPath);
+            Configuration config;
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("cyan1"))
+                .StartAsync("[cyan1]Carregando configuração...[/]", async ctx =>
+                {
+                    await Task.Run(() =>
+                    {
+                        config = configService.LoadConfiguration(settings.ConfigPath);
+                    });
+                });
+
+            config = configService.LoadConfiguration(settings.ConfigPath);
 
             // Mesclar com opções de linha de comando
             config = configService.MergeWithCommandLineOptions(config, cmdOptions);
@@ -195,22 +191,24 @@ public class Program
             // Validar configuração final
             if (!configService.ValidateConfiguration(config))
             {
-                Environment.Exit(1);
+                AnsiConsole.MarkupLine("[red]✗ Configuração inválida[/]");
+                return 1;
             }
 
             // Criar diretórios necessários
             configService.EnsureDirectoriesExist(config);
 
             // Exibir UUID da execução
-            Console.WriteLine($"🆔 Execution ID: {currentExecutionId}");
-            if (executionId != null)
-            {
-                Console.WriteLine($"🔄 Continuando execução existente");
-            }
-            else
-            {
-                Console.WriteLine($"✨ Nova execução iniciada");
-            }
+            var panel = new Panel(
+                new Markup(settings.ExecutionId != null 
+                    ? $"[cyan1]🔄 Continuando execução[/]\n[yellow]{currentExecutionId}[/]"
+                    : $"[cyan1]✨ Nova execução iniciada[/]\n[yellow]{currentExecutionId}[/]"))
+                .Border(BoxBorder.Rounded)
+                .BorderColor(Color.Cyan1)
+                .Header("[cyan1]Execution ID[/]");
+
+            AnsiConsole.Write(panel);
+            AnsiConsole.WriteLine();
 
             // Gerar caminhos de execução
             var executionPaths = configService.GenerateExecutionPaths(config, currentExecutionId);
@@ -219,26 +217,31 @@ public class Program
             var apiClientService = new ApiClientService(loggingService, config.Api, metricsService);
             var processorService = new CsvProcessorService(validationService, loggingService, apiClientService, checkpointService, metricsService);
 
-            if (dryRun)
+            if (settings.DryRun)
             {
-                Console.WriteLine("🔍 MODO DRY RUN: Nenhuma requisição será enviada à API");
+                AnsiConsole.MarkupLine("[yellow]🔍 MODO DRY RUN: Nenhuma requisição será enviada à API[/]");
+                AnsiConsole.WriteLine();
             }
 
-            Console.WriteLine("🚀 Iniciando processamento do arquivo CSV...");
+            AnsiConsole.MarkupLine("[cyan1]🚀 Iniciando processamento do arquivo CSV...[/]");
+            AnsiConsole.WriteLine();
 
             // Processar arquivo CSV
-            await processorService.ProcessCsvFileAsync(config, executionPaths, dryRun);
+            await processorService.ProcessCsvFileAsync(config, executionPaths, settings.DryRun);
 
-            Console.WriteLine("✅ Processamento concluído com sucesso!");
+            // Sucesso
+            var successRule = new Rule("[green]✓ Processamento concluído com sucesso![/]")
+                .RuleStyle(Style.Parse("green"));
+            AnsiConsole.Write(successRule);
+
+            return 0;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Erro durante o processamento: {ex.Message}");
-            if (verbose)
-            {
-                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-            }
-            Environment.Exit(1);
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[red]✗ Erro durante o processamento[/]");
+            AnsiConsole.WriteException(ex, ExceptionFormats.ShortenPaths | ExceptionFormats.ShortenTypes);
+            return 1;
         }
     }
 }

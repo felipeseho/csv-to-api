@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using CsvToApi.Models;
+using Spectre.Console;
 
 namespace CsvToApi.Services;
 
@@ -174,82 +175,124 @@ public class MetricsService
         var metrics = GetMetrics();
         var elapsed = metrics.ElapsedTime;
 
-        Console.WriteLine();
-        Console.WriteLine("═══════════════════════════════════════════════════════════════");
-        Console.WriteLine("                    📊 DASHBOARD DE PERFORMANCE                ");
-        Console.WriteLine("═══════════════════════════════════════════════════════════════");
-        Console.WriteLine();
+        // Criar tabela principal de progresso
+        var progressTable = new Table()
+            .Border(TableBorder.Double)
+            .BorderColor(Color.Cyan1)
+            .Title("[bold cyan1]📊 DASHBOARD DE PERFORMANCE[/]")
+            .AddColumn(new TableColumn("[bold]Métrica[/]").Centered())
+            .AddColumn(new TableColumn("[bold]Valor[/]").RightAligned());
 
         // Progresso
-        Console.WriteLine("📈 PROGRESSO");
-        Console.WriteLine($"   Total de Linhas:       {metrics.TotalLines:N0}");
-        Console.WriteLine($"   Linhas Processadas:    {metrics.ProcessedLines:N0} ({metrics.ProgressPercentage:F1}%)");
+        progressTable.AddRow("[cyan1]Total de Linhas[/]", $"[yellow]{metrics.TotalLines:N0}[/]");
+        progressTable.AddRow("[cyan1]Linhas Processadas[/]", $"[green]{metrics.ProcessedLines:N0}[/] [grey]({metrics.ProgressPercentage:F1}%)[/]");
         if (metrics.SkippedLines > 0)
-            Console.WriteLine($"   Linhas Puladas:        {metrics.SkippedLines:N0}");
+            progressTable.AddRow("[cyan1]Linhas Puladas[/]", $"[yellow]{metrics.SkippedLines:N0}[/]");
         
-        // Barra de progresso
-        DrawProgressBar(metrics.ProgressPercentage);
-        Console.WriteLine();
-
         // Resultados
-        Console.WriteLine("✅ RESULTADOS");
-        Console.WriteLine($"   Sucessos:              {metrics.SuccessCount:N0} ({metrics.SuccessRate:F1}%)");
-        Console.WriteLine($"   Erros HTTP:            {metrics.ErrorCount:N0} ({metrics.ErrorRate:F1}%)");
-        Console.WriteLine($"   Erros de Validação:    {metrics.ValidationErrors:N0}");
-        Console.WriteLine();
-
+        progressTable.AddEmptyRow();
+        progressTable.AddRow("[bold green]✓ Sucessos[/]", $"[green]{metrics.SuccessCount:N0}[/] [grey]({metrics.SuccessRate:F1}%)[/]");
+        progressTable.AddRow("[bold red]✗ Erros HTTP[/]", $"[red]{metrics.ErrorCount:N0}[/] [grey]({metrics.ErrorRate:F1}%)[/]");
+        progressTable.AddRow("[bold yellow]⚠ Erros de Validação[/]", $"[yellow]{metrics.ValidationErrors:N0}[/]");
+        
         // Tempo
-        Console.WriteLine("⏱️  TEMPO");
-        Console.WriteLine($"   Tempo Decorrido:       {FormatTimeSpan(elapsed)}");
+        progressTable.AddEmptyRow();
+        progressTable.AddRow("[cyan1]⏱️  Tempo Decorrido[/]", $"[yellow]{FormatTimeSpan(elapsed)}[/]");
         if (metrics.TotalLines > metrics.ProcessedLines && metrics.ProcessedLines > 0)
         {
-            Console.WriteLine($"   Tempo Restante:        {FormatTimeSpan(metrics.EstimatedTimeRemaining)}");
+            progressTable.AddRow("[cyan1]⏳ Tempo Restante[/]", $"[yellow]{FormatTimeSpan(metrics.EstimatedTimeRemaining)}[/]");
         }
-        Console.WriteLine($"   Velocidade:            {metrics.LinesPerSecond:F1} linhas/seg");
-        Console.WriteLine();
+        progressTable.AddRow("[cyan1]🚀 Velocidade[/]", $"[green]{metrics.LinesPerSecond:F1}[/] [grey]linhas/seg[/]");
+
+        AnsiConsole.Write(progressTable);
+        AnsiConsole.WriteLine();
+
+        // Barra de progresso
+        var progressBar = new BarChart()
+            .Width(60)
+            .Label("[bold cyan1]Progresso[/]")
+            .CenterLabel();
+        
+        if (metrics.SuccessCount > 0)
+            progressBar.AddItem("Sucessos", metrics.SuccessCount, Color.Green);
+        if (metrics.ErrorCount > 0)
+            progressBar.AddItem("Erros", metrics.ErrorCount, Color.Red);
+        if (metrics.ValidationErrors > 0)
+            progressBar.AddItem("Validação", metrics.ValidationErrors, Color.Yellow);
+        
+        if (metrics.SuccessCount > 0 || metrics.ErrorCount > 0 || metrics.ValidationErrors > 0)
+        {
+            AnsiConsole.Write(progressBar);
+            AnsiConsole.WriteLine();
+        }
 
         if (showDetails)
         {
             // Performance HTTP
             if (metrics.ProcessedLines > 0)
             {
-                Console.WriteLine("🌐 PERFORMANCE HTTP");
-                Console.WriteLine($"   Tempo Médio:           {metrics.AverageResponseTimeMs:F0} ms");
+                var perfTable = new Table()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Blue)
+                    .Title("[bold blue]🌐 PERFORMANCE HTTP[/]")
+                    .AddColumn(new TableColumn("[bold]Métrica[/]").Centered())
+                    .AddColumn(new TableColumn("[bold]Valor[/]").RightAligned());
+
+                perfTable.AddRow("[cyan1]Tempo Médio[/]", $"[yellow]{metrics.AverageResponseTimeMs:F0} ms[/]");
                 if (_responseTimes.Count > 0)
                 {
-                    Console.WriteLine($"   Tempo Mínimo:          {metrics.MinResponseTimeMs} ms");
-                    Console.WriteLine($"   Tempo Máximo:          {metrics.MaxResponseTimeMs} ms");
+                    perfTable.AddRow("[cyan1]Tempo Mínimo[/]", $"[green]{metrics.MinResponseTimeMs} ms[/]");
+                    perfTable.AddRow("[cyan1]Tempo Máximo[/]", $"[red]{metrics.MaxResponseTimeMs} ms[/]");
                 }
                 if (metrics.TotalRetries > 0)
-                    Console.WriteLine($"   Total de Retries:      {metrics.TotalRetries}");
-                Console.WriteLine();
+                    perfTable.AddRow("[cyan1]Total de Retries[/]", $"[yellow]{metrics.TotalRetries}[/]");
+
+                AnsiConsole.Write(perfTable);
+                AnsiConsole.WriteLine();
             }
 
             // Batches
             if (metrics.BatchesProcessed > 0)
             {
-                Console.WriteLine("📦 PROCESSAMENTO EM LOTE");
-                Console.WriteLine($"   Batches Processados:   {metrics.BatchesProcessed}");
-                Console.WriteLine($"   Tempo Médio/Batch:     {metrics.AverageBatchTimeMs:F0} ms");
-                Console.WriteLine();
+                var batchTable = new Table()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Purple)
+                    .Title("[bold purple]📦 PROCESSAMENTO EM LOTE[/]")
+                    .AddColumn(new TableColumn("[bold]Métrica[/]").Centered())
+                    .AddColumn(new TableColumn("[bold]Valor[/]").RightAligned());
+
+                batchTable.AddRow("[cyan1]Batches Processados[/]", $"[yellow]{metrics.BatchesProcessed}[/]");
+                batchTable.AddRow("[cyan1]Tempo Médio/Batch[/]", $"[yellow]{metrics.AverageBatchTimeMs:F0} ms[/]");
+
+                AnsiConsole.Write(batchTable);
+                AnsiConsole.WriteLine();
             }
 
             // Status HTTP
             if (metrics.HttpStatusCodes.Count > 0)
             {
-                Console.WriteLine("📊 CÓDIGOS HTTP");
+                var statusTable = new Table()
+                    .Border(TableBorder.Rounded)
+                    .BorderColor(Color.Orange1)
+                    .Title("[bold orange1]📊 CÓDIGOS HTTP[/]")
+                    .AddColumn(new TableColumn("[bold]Código[/]").Centered())
+                    .AddColumn(new TableColumn("[bold]Quantidade[/]").RightAligned())
+                    .AddColumn(new TableColumn("[bold]Percentual[/]").RightAligned());
+
                 foreach (var kvp in metrics.HttpStatusCodes.OrderBy(x => x.Key))
                 {
-                    var emoji = GetStatusEmoji(kvp.Key);
                     var percentage = (kvp.Value * 100.0 / metrics.ProcessedLines);
-                    Console.WriteLine($"   {emoji} {kvp.Key}: {kvp.Value:N0} ({percentage:F1}%)");
+                    var color = GetStatusColor(kvp.Key);
+                    statusTable.AddRow(
+                        $"[{color}]{kvp.Key}[/]",
+                        $"[{color}]{kvp.Value:N0}[/]",
+                        $"[{color}]{percentage:F1}%[/]");
                 }
-                Console.WriteLine();
+
+                AnsiConsole.Write(statusTable);
+                AnsiConsole.WriteLine();
             }
         }
-
-        Console.WriteLine("═══════════════════════════════════════════════════════════════");
-        Console.WriteLine();
     }
 
     /// <summary>
@@ -257,28 +300,8 @@ public class MetricsService
     /// </summary>
     public void DisplayProgressUpdate()
     {
-        var metrics = GetMetrics();
-        Console.Write($"\r⏳ Processadas: {metrics.ProcessedLines:N0}/{metrics.TotalLines:N0} " +
-                      $"| Sucessos: {metrics.SuccessCount:N0} " +
-                      $"| Erros: {metrics.ErrorCount:N0} " +
-                      $"| {metrics.LinesPerSecond:F1} linhas/seg " +
-                      $"| {metrics.ProgressPercentage:F1}%");
-    }
-
-    /// <summary>
-    /// Desenha barra de progresso no console
-    /// </summary>
-    private void DrawProgressBar(double percentage)
-    {
-        const int barWidth = 50;
-        var filled = (int)(barWidth * percentage / 100);
-        var empty = barWidth - filled;
-
-        Console.Write("   [");
-        Console.Write(new string('█', filled));
-        Console.Write(new string('░', empty));
-        Console.Write($"] {percentage:F1}%");
-        Console.WriteLine();
+        // Esta função agora não é necessária pois usamos a barra de progresso do Spectre.Console
+        // Mantida para compatibilidade, mas não faz nada
     }
 
     /// <summary>
@@ -294,17 +317,17 @@ public class MetricsService
     }
 
     /// <summary>
-    /// Retorna emoji apropriado para código HTTP
+    /// Retorna cor apropriada para código HTTP
     /// </summary>
-    private string GetStatusEmoji(int statusCode)
+    private string GetStatusColor(int statusCode)
     {
         return statusCode switch
         {
-            >= 200 and < 300 => "✅",
-            >= 300 and < 400 => "↩️",
-            >= 400 and < 500 => "⚠️",
-            >= 500 => "❌",
-            _ => "❓"
+            >= 200 and < 300 => "green",
+            >= 300 and < 400 => "blue",
+            >= 400 and < 500 => "yellow",
+            >= 500 => "red",
+            _ => "grey"
         };
     }
 }

@@ -2,6 +2,19 @@
 
 Aplicação .NET 10 que processa arquivos CSV em lotes e envia os dados para uma API REST.
 
+## ✨ Interface Visual Moderna com Spectre.Console
+
+Este projeto utiliza a biblioteca [Spectre.Console](https://spectreconsole.net/) para oferecer uma experiência de console rica e visualmente atraente:
+
+- 🎨 **Banner ASCII Art** estilizado
+- 📊 **Dashboard de métricas** em tempo real
+- 📈 **Barras de progresso** animadas
+- 🎯 **Tabelas formatadas** para configurações e resultados
+- 🌈 **Cores temáticas** para diferentes tipos de mensagens
+- ⚡ **Spinners animados** durante operações
+
+Veja detalhes completos em [SPECTRE_CONSOLE.md](SPECTRE_CONSOLE.md)
+
 ## Funcionalidades
 
 - ✅ Leitura de arquivos CSV grandes em lotes configuráveis
@@ -13,6 +26,7 @@ Aplicação .NET 10 que processa arquivos CSV em lotes e envia os dados para uma
 - ✅ Configuração via arquivo YAML
 - ✅ Autenticação Bearer Token
 - ✅ **Argumentos de linha de comando para sobrescrever configurações**
+- ✅ **Interface visual moderna e interativa**
 
 ## Requisitos
 
