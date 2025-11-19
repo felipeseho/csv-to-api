@@ -56,11 +56,24 @@ public class ApiClientService
             Timeout = TimeSpan.FromSeconds(endpointConfig.RequestTimeout)
         };
 
-        // Configurar autenticação
-        if (!string.IsNullOrWhiteSpace(endpointConfig.AuthToken))
+        // Configurar headers customizados
+        // Nota: Content-Type e outros headers de conteúdo devem ser configurados no HttpContent, não no HttpClient
+        if (endpointConfig.Headers != null && endpointConfig.Headers.Count > 0)
         {
-            httpClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", endpointConfig.AuthToken);
+            var contentHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Content-Type", "Content-Length", "Content-Encoding", "Content-Language", 
+                "Content-Location", "Content-MD5", "Content-Range", "Expires", "Last-Modified"
+            };
+
+            foreach (var header in endpointConfig.Headers)
+            {
+                // Ignorar headers de conteúdo (eles serão adicionados no HttpContent quando a requisição for feita)
+                if (!contentHeaders.Contains(header.Key))
+                {
+                    httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                }
+            }
         }
 
         return httpClient;
@@ -188,7 +201,14 @@ public class ApiClientService
             
             try
             {
+                // Criar conteúdo da requisição
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                // Aplicar Content-Type customizado se configurado
+                if (endpointConfig.Headers != null && endpointConfig.Headers.ContainsKey("Content-Type"))
+                {
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(endpointConfig.Headers["Content-Type"]);
+                }
 
                 HttpResponseMessage response;
                 if (endpointConfig.Method.ToUpper() == "POST")

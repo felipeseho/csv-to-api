@@ -7,7 +7,7 @@ public class NamedEndpoint
 {
     public string Name { get; set; } = string.Empty;
     public string EndpointUrl { get; set; } = string.Empty;
-    public string AuthToken { get; set; } = string.Empty;
+    public Dictionary<string, string> Headers { get; set; } = new();
     public string Method { get; set; } = "POST";
     public int RequestTimeout { get; set; } = 30;
     public int RetryAttempts { get; set; } = 3;

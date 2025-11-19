@@ -38,7 +38,9 @@ endpoints:
   - name: "ingest"
     endpointUrl: "https://api-hub-homol.whitelabel.com.br/hub-connect/v1/hub-connect-api/events/ingest"    
     # endpointUrl: "https://test-seho.requestcatcher.com/"
-    authToken: ""
+    headers:
+      Authorization: "Bearer seu-token-aqui"
+      X-Custom-Header: "valor-customizado"
     method: "POST"
     requestTimeout: 30
     retryAttempts: 3
@@ -69,7 +71,9 @@ endpoints:
   
   - name: "suspensao"
     endpointUrl: "https://test-seho.requestcatcher.com/"
-    authToken: "token_endpoint1"
+    headers:
+      Authorization: "Bearer token_endpoint1"
+      X-Custom-Header: "valor-customizado"
     method: "PUT"
     requestTimeout: 30
     retryAttempts: 3

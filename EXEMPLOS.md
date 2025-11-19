@@ -12,7 +12,8 @@ Para testar a aplicação com uma API real sem precisar criar um servidor, você
 endpoints:
   - name: "teste"
     endpointUrl: "https://webhook.site/sua-url-unica-aqui"
-    authToken: ""
+    headers:
+      Authorization: "Bearer seu-token-se-necessario"
     method: "POST"
     requestTimeout: 30
     mapping:
@@ -59,7 +60,9 @@ file:
 endpoints:
   - name: "usuarios"
     endpointUrl: "https://api.exemplo.com.br/api/v1/usuarios"
-    authToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    headers:
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      X-API-Version: "1.0"
     method: "POST"
     requestTimeout: 45
     mapping:
@@ -112,9 +115,11 @@ Maria Santos,maria.santos@email.com,987.654.321-00,22/08/1985,98765-432,Av. Prin
 ## Exemplo 3: Atualização em Massa (PUT)
 
 ```yaml
-api:
+endpoints:
+  - name: "atualizacao"
     endpointUrl: "https://api.exemplo.com/usuarios/{id}/atualizar"
-    authToken: "seu-token-aqui"
+    headers:
+      Authorization: "Bearer seu-token-aqui"
     method: "PUT"
     requestTimeout: 30
     mapping:
@@ -133,9 +138,6 @@ api:
 ```yaml
 file:
     batchLines: 500        # Lotes maiores
-    
-api:
-    requestTimeout: 60     # Timeout maior
 ```
 
 ### Para APIs lentas
@@ -143,9 +145,6 @@ api:
 ```yaml
 file:
     batchLines: 10         # Lotes menores para evitar timeout
-    
-api:
-    requestTimeout: 120    # Timeout maior
 ```
 
 ### Para máxima velocidade
@@ -153,9 +152,6 @@ api:
 ```yaml
 file:
     batchLines: 1000       # Lotes grandes
-    
-api:
-    requestTimeout: 30     # API rápida
 ```
 
 ## Monitoramento de Progresso
@@ -220,12 +216,12 @@ done
 - Use caminhos relativos ou absolutos
 
 ### Erro: "Connection timeout"
-- Aumente `api.requestTimeout`
+- Aumente o `requestTimeout` do endpoint no config.yaml
 - Reduza `file.batchLines`
 - Verifique conectividade com a API
 
 ### Erro: "401 Unauthorized"
-- Verifique o `api.authToken`
+- Verifique o header `Authorization` na configuração do endpoint
 - Certifique-se que o token não expirou
 
 ### Muitos erros de validação
@@ -234,6 +230,46 @@ done
 - Ajuste o formato de data se necessário
 
 ## Exemplos com Argumentos de Linha de Comando
+
+### Processar arquivo diferente sem alterar config.yaml
+```bash
+dotnet run -- --input data/vendas-janeiro.csv
+```
+
+### Usar endpoint de produção temporariamente
+```bash
+dotnet run -- --endpoint-name producao --verbose
+```
+
+### Processar com lotes maiores
+```bash
+dotnet run -- --batch-lines 1000 --verbose
+```
+
+### Processar arquivo com delimitador ponto-e-vírgula
+```bash
+dotnet run -- --input data/export.csv --delimiter ";" --verbose
+```
+
+### Retomar processamento após falha
+```bash
+# Se o processamento falhou ou foi interrompido na linha 2500
+dotnet run -- \
+  --input data/vendas-grandes.csv \
+  --start-line 2501 \
+  --endpoint-name producao \
+  --verbose
+```
+
+### Processar apenas um subconjunto de linhas para teste
+```bash
+# Processar apenas as primeiras 100 linhas
+dotnet run -- \
+  --input data/clientes.csv \
+  --max-lines 100 \
+  --endpoint-name teste \
+  --verbose
+```
 
 ### Processar arquivo diferente sem alterar config.yaml
 ```bash
@@ -314,9 +350,12 @@ dotnet run -- \
 Quando você precisa enviar dados do CSV junto com informações fixas (como origem da importação, versão da API, tenant ID, etc.):
 
 ```yaml
-api:
+endpoints:
+  - name: "clientes"
     endpointUrl: "https://api.exemplo.com/v1/clientes"
-    authToken: "Bearer xyz123..."
+    headers:
+      Authorization: "Bearer xyz123..."
+      X-Tenant-ID: "empresa-123"
     method: "POST"
     requestTimeout: 30
     mapping:
@@ -333,8 +372,6 @@ api:
         fixedValue: "importacao-csv"
       - attribute: "versaoApi"
         fixedValue: "v1"
-      - attribute: "tenantId"
-        fixedValue: "empresa-123"
       - attribute: "ambiente"
         fixedValue: "producao"
 ```
@@ -434,9 +471,14 @@ file:
 endpointColumnName: "TipoCliente"
 
 # Configuração padrão (caso TipoCliente não seja reconhecido)
-api:
+defaultEndpoint: "standard"
+
+# Endpoints específicos por tipo de cliente
+endpoints:
+  - name: "standard"
     endpointUrl: "https://api.sistema.com/clientes/default"
-    authToken: "token_default"
+    headers:
+      Authorization: "Bearer token_default"
     method: "POST"
     requestTimeout: 30
     mapping:
@@ -447,11 +489,11 @@ api:
       - attribute: "categoria"
         fixedValue: "standard"
 
-# Endpoints específicos por tipo de cliente
-endpoints:
   - name: "premium"
     endpointUrl: "https://api.premium.com/clientes"
-    authToken: "token_premium_abc123"
+    headers:
+      Authorization: "Bearer token_premium_abc123"
+      X-Client-Tier: "premium"
     method: "POST"
     requestTimeout: 45
     retryAttempts: 5
@@ -475,7 +517,8 @@ endpoints:
   
   - name: "basic"
     endpointUrl: "https://api.basico.com/usuarios"
-    authToken: "token_basic_xyz789"
+    headers:
+      Authorization: "Bearer token_basic_xyz789"
     method: "POST"
     requestTimeout: 30
     retryAttempts: 3

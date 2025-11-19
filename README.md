@@ -172,7 +172,10 @@ defaultEndpoint: "webhook1"
 endpoints:
   - name: "webhook1"
     endpointUrl: "https://api.example.com/upload"
-    authToken: "your_auth_token_here"     # Token de autenticação (opcional)
+    headers:                              # Headers HTTP customizados (opcional)
+      Authorization: "Bearer your_auth_token_here"
+      X-Custom-Header: "valor-customizado"
+      X-API-Key: "sua-chave-api"
     method: "POST"                        # POST ou PUT
     requestTimeout: 30                    # Timeout em segundos
     retryAttempts: 3
@@ -194,6 +197,29 @@ endpoints:
         fixedValue: "1.0"
 ```
 
+### Headers HTTP Customizados
+
+Você pode configurar headers HTTP customizados para cada endpoint. Isso permite:
+
+- **Autenticação Bearer Token**: `Authorization: "Bearer seu-token"`
+- **Autenticação API Key**: `X-API-Key: "sua-chave"`
+- **Headers customizados**: Qualquer header HTTP válido
+- **Content-Type**: Se não especificado, usa `application/json` por padrão
+
+**Exemplo:**
+```yaml
+endpoints:
+  - name: "producao"
+    endpointUrl: "https://api.exemplo.com/v1/eventos"
+    headers:
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      X-Tenant-ID: "empresa-123"
+      X-API-Version: "2.0"
+    method: "POST"
+```
+
+**Nota**: Headers de conteúdo como `Content-Type` são tratados automaticamente. O padrão é `application/json`.
+
 ## Múltiplos Endpoints
 
 A aplicação trabalha com endpoints nomeados, permitindo rotear diferentes linhas do CSV para diferentes APIs.
@@ -211,7 +237,8 @@ endpointColumnName: "Endpoint"
 endpoints:
   - name: "webhook1"
     endpointUrl: "https://webhook.site/endpoint1"
-    authToken: "token_endpoint1"
+    headers:
+      Authorization: "Bearer token_endpoint1"
     method: "POST"
     requestTimeout: 30
     retryAttempts: 3
@@ -226,7 +253,9 @@ endpoints:
   
   - name: "webhook2"
     endpointUrl: "https://webhook.site/endpoint2"
-    authToken: "token_endpoint2"
+    headers:
+      Authorization: "Bearer token_endpoint2"
+      X-API-Key: "chave-api-endpoint2"
     method: "POST"
     requestTimeout: 30
     mapping:

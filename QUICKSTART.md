@@ -75,11 +75,14 @@ Edite `config.yaml` com suas configurações:
 file:
     inputPath: "data/seu-arquivo.csv"
     batchLines: 100
-    logPath: "logs/seu-log.log"
+    logDirectory: "logs"
 
-api:
+endpoints:
+  - name: "meu-endpoint"
     endpointUrl: "https://sua-api.com/endpoint"
-    authToken: "seu-token-aqui"
+    headers:
+      Authorization: "Bearer seu-token-aqui"
+      X-Custom-Header: "valor-customizado"
     method: "POST"
 ```
 
@@ -114,9 +117,11 @@ file:
     csvDelimiter: ","
     mapping: []
 
-api:
+endpoints:
+  - name: "default"
     endpointUrl: "https://webhook.site/SUA-URL"
-    authToken: ""
+    headers:
+      Authorization: "Bearer seu-token-aqui"
     method: "POST"
     requestTimeout: 30
     mapping:
