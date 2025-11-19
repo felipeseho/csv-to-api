@@ -586,5 +586,182 @@ dotnet run -- --endpoint-name basic
 4. **Estrutura de dados**: Payloads customizados para cada sistema
 5. **Fallback**: Configuração padrão para casos não mapeados
 
+## Exemplo 5: Usando Filtros de Dados
+
+### Cenário 1: Processar apenas uma campanha específica
+
+Imagine que você tem um CSV com dados de múltiplas campanhas, mas quer processar apenas os registros de uma campanha específica:
+
+```yaml
+file:
+    inputPath: "data/campanhas.csv"
+    batchLines: 100
+file:
+    inputPath: "data/campanhas.csv"
+    batchLines: 100
+    columns:
+        - column: "nome"
+          type: "string"
+        
+        - column: "email"
+          type: "string"
+        
+        # Filtro: processar apenas registros da campanha "black_friday_2024"
+        - column: "campanha"
+          type: "string"
+          filter:
+            operator: "Equals"
+            value: "black_friday_2024"
+            caseInsensitive: true
+        
+        - column: "status"
+          type: "string"
+
+endpoints:
+  - name: "campanha_api"
+    endpointUrl: "https://api.exemplo.com/campanhas"
+    method: "POST"
+    mapping:
+      - attribute: "nome"
+        csvColumn: "nome"
+      - attribute: "email"
+        csvColumn: "email"
+```
+
+**Resultado**: Apenas linhas onde `campanha = "black_friday_2024"` serão enviadas para a API.
+
+### Cenário 2: Excluir registros de teste
+
+```yaml
+file:
+    columns:
+        - column: "email"
+          type: "string"
+          # Filtro: excluir emails de teste
+          filter:
+            operator: "NotContains"
+            value: "test"
+            caseInsensitive: true
+        
+        - column: "status"
+          type: "string"
+          # Filtro: excluir status cancelado
+          filter:
+            operator: "NotEquals"
+            value: "cancelado"
+            caseInsensitive: true
+```
+
+**Resultado**: Ignora linhas com emails contendo "test" ou status cancelado.
+
+### Cenário 3: Processar apenas clientes de uma região
+
+```yaml
+file:
+    inputPath: "data/clientes.csv"
+file:
+    inputPath: "data/clientes.csv"
+    columns:
+        - column: "nome"
+          type: "string"
+        
+        # Filtro: processar apenas clientes de SP
+        - column: "estado"
+          type: "string"
+          filter:
+            operator: "Contains"
+            value: "SP"  # São Paulo
+            caseInsensitive: true
+        
+        # Filtro: processar apenas plano premium
+        - column: "plano"
+          type: "string"
+          filter:
+            operator: "Equals"
+            value: "premium"
+            caseInsensitive: true
+```
+
+**Resultado**: Apenas clientes de SP com plano premium serão processados.
+
+### Cenário 4: Filtrar múltiplos valores (OR simulado)
+
+Para processar registros que tenham um entre vários valores (operação OR), você precisa executar o programa múltiplas vezes ou usar configurações separadas:
+
+#### Opção 1: Execuções separadas
+
+```bash
+# Processar campanha A
+dotnet run -- --config config-campanha-a.yaml
+
+# Processar campanha B
+dotnet run -- --config config-campanha-b.yaml
+```
+
+#### Opção 2: Usar "Contains" para múltiplos valores
+
+Se os valores fazem parte de um padrão:
+
+```yaml
+file:
+    columns:
+        # Processa campanhas que contenham "promo" (ex: promo2024, promo_natal, etc)
+        - column: "campanha"
+          type: "string"
+          filter:
+            operator: "Contains"
+            value: "promo"
+            caseInsensitive: true
+```
+
+### Cenário 5: Validar campos obrigatórios
+
+```yaml
+file:
+    columns:
+        # Processar apenas linhas com email preenchido
+        - column: "email"
+          type: "string"
+          filter:
+            operator: "NotEquals"
+            value: ""
+        
+        # Processar apenas linhas com telefone preenchido
+        - column: "telefone"
+          type: "string"
+          filter:
+            operator: "NotEquals"
+            value: ""
+```
+
+**Resultado**: Apenas linhas com email E telefone preenchidos serão processadas.
+
+### Dicas de Uso com Filtros
+
+1. **Teste primeiro**: Use `maxLines: 10` para testar os filtros com poucas linhas
+   ```yaml
+   file:
+       maxLines: 10  # Processar apenas 10 linhas
+   ```
+
+2. **Monitore as estatísticas**: O sistema mostra quantas linhas foram filtradas
+   ```
+   🔍 Filtros ativos (2):
+     - Coluna 'campanha' igual a 'promo2024' (ignorar maiúsculas/minúsculas)
+     - Coluna 'status' diferente de 'cancelado' (ignorar maiúsculas/minúsculas)
+   
+   🔍 Total de linhas filtradas: 1523
+   ```
+
+3. **Combine com validações**: Filtros são aplicados antes das validações, economizando processamento
+
+4. **Use dry-run**: Teste sem enviar para a API
+   ```bash
+   dotnet run -- --dry-run
+   ```
+
+Veja a documentação completa em [FILTROS.md](FILTROS.md).
+
+
 
 

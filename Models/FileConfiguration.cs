@@ -12,6 +12,6 @@ public class FileConfiguration
     public int StartLine { get; set; } = 1;
     public int? MaxLines { get; set; }
     public string CheckpointDirectory { get; set; } = "checkpoints";
-    public List<ColumnMapping> Mapping { get; set; } = new();
+    public List<ColumnMapping> Columns { get; set; } = new();
 }
 

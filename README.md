@@ -19,6 +19,7 @@ Veja detalhes completos em [SPECTRE_CONSOLE.md](SPECTRE_CONSOLE.md)
 
 - ✅ Leitura de arquivos CSV grandes em lotes configuráveis
 - ✅ Validação de dados com regex e formatos de data
+- ✅ **Filtros de dados para processar apenas linhas específicas**
 - ✅ Processamento paralelo para alta performance
 - ✅ Chamadas HTTP (POST/PUT) para API REST
 - ✅ Log de erros com informações detalhadas (linha, HTTP code, mensagem)
@@ -412,6 +413,39 @@ No mapeamento da API, você pode usar:
   ```
 
 **Importante**: Cada mapping deve ter **OU** `csvColumn` **OU** `fixedValue`, mas não ambos.
+
+## Filtros de Dados
+
+O sistema permite filtrar as linhas do CSV antes do processamento, processando apenas registros que atendem a critérios específicos. Os filtros são configurados **diretamente em cada coluna**.
+
+### Exemplo de Configuração
+
+```yaml
+file:
+    columns:
+        - column: "campaign"
+          type: "string"
+          filter:
+            operator: "Equals"
+            value: "promo2024"
+            caseInsensitive: true
+        
+        - column: "status"
+          type: "string"
+          filter:
+            operator: "NotEquals"
+            value: "cancelado"
+            caseInsensitive: true
+```
+
+### Operadores Disponíveis
+
+- **Equals**: Valor exatamente igual
+- **NotEquals**: Valor diferente
+- **Contains**: Valor contém o texto especificado
+- **NotContains**: Valor não contém o texto especificado
+
+**Documentação completa**: Veja [FILTROS.md](FILTROS.md) para exemplos detalhados e casos de uso.
 
 ## Tratamento de Erros
 

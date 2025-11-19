@@ -9,5 +9,10 @@ public class ColumnMapping
     public string Type { get; set; } = string.Empty;
     public string? Regex { get; set; }
     public string? Format { get; set; }
+    
+    /// <summary>
+    /// Filtro opcional a ser aplicado nesta coluna
+    /// </summary>
+    public ColumnFilter? Filter { get; set; }
 }
 

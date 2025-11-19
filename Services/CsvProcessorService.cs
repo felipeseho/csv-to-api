@@ -18,6 +18,7 @@ public class CsvProcessorService
     private readonly ApiClientService _apiClientService;
     private readonly CheckpointService _checkpointService;
     private readonly MetricsService _metricsService;
+    private FilterService? _filterService;
 
     public CsvProcessorService(
         ValidationService validationService,
@@ -38,6 +39,17 @@ public class CsvProcessorService
     /// </summary>
     public async Task ProcessCsvFileAsync(Configuration config, ExecutionPaths executionPaths, bool dryRun = false, string? endpointName = null)
     {
+        // Inicializar serviço de filtros a partir das colunas configuradas
+        _filterService = new FilterService(config.File.Columns);
+        
+        // Exibir filtros configurados
+        var filtersCount = config.File.Columns.Count(c => c.Filter != null);
+        if (filtersCount > 0)
+        {
+            AnsiConsole.MarkupLine($"[cyan1]🔍 {_filterService.GetFiltersSummary()}[/]");
+            AnsiConsole.WriteLine();
+        }
+        
         // Obter configuração do endpoint a usar (para criar HttpClient)
         var configService = new ConfigurationService();
         var endpointConfig = configService.GetEndpointConfiguration(config, endpointName);
@@ -103,6 +115,7 @@ public class CsvProcessorService
         var totalErrors = checkpoint?.ErrorCount ?? 0;
         var totalSuccess = checkpoint?.SuccessCount ?? 0;
         var totalSkipped = 0;
+        var totalFiltered = 0; // Linhas filtradas
 
         // Pular linhas até a linha inicial configurada
         while (lineNumber < startLineFromCheckpoint && await csv.ReadAsync())
@@ -148,8 +161,16 @@ public class CsvProcessorService
                         record.Data[header] = csv.GetField(header) ?? string.Empty;
                     }
 
+                    // Aplicar filtros
+                    if (_filterService != null && !_filterService.PassesFilters(record))
+                    {
+                        totalFiltered++;
+                        _metricsService.RecordSkippedLines(1);
+                        continue;
+                    }
+
                     // Validar campos
-                    var validationError = _validationService.ValidateRecord(record, config.File.Mapping);
+                    var validationError = _validationService.ValidateRecord(record, config.File.Columns);
                     if (validationError != null)
                     {
                         await _loggingService.LogError(executionPaths.LogPath, record, 400, validationError, headers);
@@ -229,6 +250,12 @@ public class CsvProcessorService
         // Finalizar métricas
         _metricsService.EndProcessing();
         AnsiConsole.WriteLine();
+        
+        // Exibir total de linhas filtradas
+        if (totalFiltered > 0)
+        {
+            AnsiConsole.MarkupLine($"[yellow]🔍 Total de linhas filtradas:[/] [grey]{totalFiltered}[/]");
+        }
 
         // Salvar checkpoint final
         if (!string.IsNullOrWhiteSpace(executionPaths.CheckpointPath))

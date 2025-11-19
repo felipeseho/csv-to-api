@@ -1,26 +1,34 @@
 file:
-    inputPath: "/users/felipeseho/Desktop/bases/brisanet.csv"
+    inputPath: "/users/felipeseho/Desktop/bases/brisanet_full.csv"
     batchLines: 100
     startLine: 1
-    maxLines: 1  # Opcional: limita o número de linhas a processar (útil para testes)
+    maxLines: 100  # Opcional: limita o número de linhas a processar (útil para testes)
     logDirectory: "logs"  # Diretório onde os logs serão salvos
     csvDelimiter: ";"
     checkpointDirectory: "checkpoints"  # Diretório onde os checkpoints serão salvos
-    mapping:
-        - column: "name"
-          type: "string"
-        - column: "email"
-          type: "string"
-          regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    columns:
         - column: "subscription_id"
           type: "string"
         - column: "campaign"
           type: "string"
-        - column: "cpf"
-          type: "string"
-        - column: "msisdn"
+          filter:
+            operator: "NotEquals"
+            value: "Produto Revan - sem código campanha"
+        - column: "sub_partner"
           type: "string"
         - column: "start_date"
+          type: "date"
+          format: "DD/MM/YYYY"
+        - column: "cpf"
+          type: "string"
+        - column: "email"
+          type: "string"
+          regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        - column: "msisdn"
+          type: "string"
+        - column: "name"
+          type: "string"
+        - column: "end_date"
           type: "date"
           format: "DD/MM/YYYY"
 
@@ -30,17 +38,17 @@ file:
 
 # Endpoint padrão a ser usado quando não especificado via --endpoint-name ou coluna CSV (opcional)
 # Se não configurado e houver apenas 1 endpoint, ele será usado automaticamente
-defaultEndpoint: "ingest"
+defaultEndpoint: "subscription_create"
 
 # Lista de endpoints nomeados (obrigatório - deve ter pelo menos um)
 # Cada endpoint tem sua própria URL, autenticação e mapeamento
 endpoints:
-  - name: "ingest"
+  - name: "subscription_create"
     endpointUrl: "https://api-hub-homol.whitelabel.com.br/hub-connect/v1/hub-connect-api/events/ingest"    
     # endpointUrl: "https://test-seho.requestcatcher.com/"
-    headers:
-      Authorization: "Bearer seu-token-aqui"
-      X-Custom-Header: "valor-customizado"
+    # headers:
+    #   Authorization: "Bearer seu-token-aqui"
+    #   X-Custom-Header: "valor-customizado"
     method: "POST"
     requestTimeout: 30
     retryAttempts: 3
@@ -68,28 +76,3 @@ endpoints:
         csvColumn: "msisdn"
       - attribute: "payload.subscriptionId"
         csvColumn: "subscription_id"
-  
-  - name: "suspensao"
-    endpointUrl: "https://test-seho.requestcatcher.com/"
-    headers:
-      Authorization: "Bearer token_endpoint1"
-      X-Custom-Header: "valor-customizado"
-    method: "PUT"
-    requestTimeout: 30
-    retryAttempts: 3
-    retryDelaySeconds: 5
-    maxRequestsPerSecond: 10
-    mapping:
-      - attribute: "eventType"
-        csvColumn: "Name"
-        transform: "uppercase"
-      - attribute: "user.email"
-        csvColumn: "Email"
-        transform: "lowercase"
-      - attribute: "address.street"
-        csvColumn: "Street"
-      - attribute: "user.dob"
-        csvColumn: "Birthdate"
-        transform: "date-format:DD/MM/YYYY"
-      - attribute: "source"
-        fixedValue: "endpoint1"
