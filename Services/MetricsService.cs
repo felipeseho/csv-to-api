@@ -180,7 +180,7 @@ public class MetricsService
             .Border(TableBorder.Double)
             .BorderColor(Color.Cyan1)
             .Title("[bold cyan1]📊 DASHBOARD DE PERFORMANCE[/]")
-            .AddColumn(new TableColumn("[bold]Métrica[/]").Centered())
+            .AddColumn(new TableColumn("[bold]Métrica[/]").LeftAligned())
             .AddColumn(new TableColumn("[bold]Valor[/]").RightAligned());
 
         // Progresso

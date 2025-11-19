@@ -46,20 +46,50 @@ public class ConfigurationService
         if (options.MaxLines.HasValue)
             config.File.MaxLines = options.MaxLines.Value;
         
-        // Sobrescrever configurações de API se fornecidas
-        if (!string.IsNullOrWhiteSpace(options.EndpointUrl))
-            config.Api.EndpointUrl = options.EndpointUrl;
-        
-        if (!string.IsNullOrWhiteSpace(options.AuthToken))
-            config.Api.AuthToken = options.AuthToken;
-        
-        if (!string.IsNullOrWhiteSpace(options.Method))
-            config.Api.Method = options.Method;
-        
-        if (options.RequestTimeout.HasValue)
-            config.Api.RequestTimeout = options.RequestTimeout.Value;
-        
         return config;
+    }
+    
+    /// <summary>
+    /// Retorna a configuração do endpoint a ser usado, baseado no nome do endpoint
+    /// </summary>
+    /// <param name="config">Configuração principal</param>
+    /// <param name="endpointName">Nome do endpoint (pode vir de argumento ou CSV)</param>
+    /// <returns>Configuração do endpoint especificado</returns>
+    public NamedEndpoint GetEndpointConfiguration(Configuration config, string? endpointName = null)
+    {
+        // Se não há nome de endpoint especificado, usar endpoint padrão configurado
+        if (string.IsNullOrWhiteSpace(endpointName))
+        {
+            if (!string.IsNullOrWhiteSpace(config.DefaultEndpoint))
+            {
+                endpointName = config.DefaultEndpoint;
+            }
+            else if (config.Endpoints.Count == 1)
+            {
+                // Se há apenas um endpoint, usar ele
+                return config.Endpoints[0];
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Nome do endpoint não especificado. Use --endpoint-name, configure 'endpointColumnName' no CSV, " +
+                    "ou defina 'defaultEndpoint' na configuração. " +
+                    $"Endpoints disponíveis: {string.Join(", ", config.Endpoints.Select(e => e.Name))}");
+            }
+        }
+        
+        // Buscar endpoint pelo nome
+        var endpoint = config.Endpoints.FirstOrDefault(e => 
+            e.Name.Equals(endpointName, StringComparison.OrdinalIgnoreCase));
+        
+        if (endpoint == null)
+        {
+            throw new InvalidOperationException(
+                $"Endpoint '{endpointName}' não encontrado na configuração. " +
+                $"Endpoints disponíveis: {string.Join(", ", config.Endpoints.Select(e => e.Name))}");
+        }
+        
+        return endpoint;
     }
 
     /// <summary>
@@ -73,18 +103,61 @@ public class ConfigurationService
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(config.Api.EndpointUrl))
+        // Deve haver pelo menos um endpoint configurado
+        if (config.Endpoints.Count == 0)
         {
-            Console.WriteLine("URL do endpoint da API não configurada");
+            Console.WriteLine("É necessário configurar pelo menos um endpoint na lista 'endpoints'");
             return false;
         }
+        
+        // Validar cada endpoint
+        foreach (var endpoint in config.Endpoints)
+        {
+            if (string.IsNullOrWhiteSpace(endpoint.Name))
+            {
+                Console.WriteLine("Todos os endpoints devem ter um 'name' definido");
+                return false;
+            }
+            
+            if (string.IsNullOrWhiteSpace(endpoint.EndpointUrl))
+            {
+                Console.WriteLine($"Endpoint '{endpoint.Name}' deve ter 'endpointUrl' definido");
+                return false;
+            }
+            
+            if (!ValidateApiMappings(endpoint.Mapping, endpoint.Name))
+            {
+                return false;
+            }
+        }
+        
+        // Validar endpoint padrão se especificado
+        if (!string.IsNullOrWhiteSpace(config.DefaultEndpoint))
+        {
+            var defaultExists = config.Endpoints.Any(e => 
+                e.Name.Equals(config.DefaultEndpoint, StringComparison.OrdinalIgnoreCase));
+            
+            if (!defaultExists)
+            {
+                Console.WriteLine($"Endpoint padrão '{config.DefaultEndpoint}' não encontrado na lista de endpoints.");
+                Console.WriteLine($"Endpoints disponíveis: {string.Join(", ", config.Endpoints.Select(e => e.Name))}");
+                return false;
+            }
+        }
 
-        // Validar mappings da API
-        foreach (var mapping in config.Api.Mapping)
+        return true;
+    }
+    
+    /// <summary>
+    /// Valida os mappings de uma configuração de API
+    /// </summary>
+    private bool ValidateApiMappings(List<ApiMapping> mappings, string contextName)
+    {
+        foreach (var mapping in mappings)
         {
             if (string.IsNullOrWhiteSpace(mapping.Attribute))
             {
-                Console.WriteLine("Mapping da API deve ter um 'attribute' definido");
+                Console.WriteLine($"Mapping em '{contextName}' deve ter um 'attribute' definido");
                 return false;
             }
 
@@ -94,17 +167,17 @@ public class ConfigurationService
 
             if (!hasFixedValue && !hasCsvColumn)
             {
-                Console.WriteLine($"Mapping para '{mapping.Attribute}' deve ter 'fixedValue' ou 'csvColumn' definido");
+                Console.WriteLine($"Mapping para '{mapping.Attribute}' em '{contextName}' deve ter 'fixedValue' ou 'csvColumn' definido");
                 return false;
             }
 
             if (hasFixedValue && hasCsvColumn)
             {
-                Console.WriteLine($"Mapping para '{mapping.Attribute}' não pode ter 'fixedValue' e 'csvColumn' ao mesmo tempo");
+                Console.WriteLine($"Mapping para '{mapping.Attribute}' em '{contextName}' não pode ter 'fixedValue' e 'csvColumn' ao mesmo tempo");
                 return false;
             }
         }
-
+        
         return true;
     }
 

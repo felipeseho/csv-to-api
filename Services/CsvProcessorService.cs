@@ -36,9 +36,13 @@ public class CsvProcessorService
     /// <summary>
     /// Processa arquivo CSV completo
     /// </summary>
-    public async Task ProcessCsvFileAsync(Configuration config, ExecutionPaths executionPaths, bool dryRun = false)
+    public async Task ProcessCsvFileAsync(Configuration config, ExecutionPaths executionPaths, bool dryRun = false, string? endpointName = null)
     {
-        using var httpClient = _apiClientService.CreateHttpClient(config.Api);
+        // Obter configuração do endpoint a usar (para criar HttpClient)
+        var configService = new ConfigurationService();
+        var endpointConfig = configService.GetEndpointConfiguration(config, endpointName);
+        
+        using var httpClient = _apiClientService.CreateHttpClient(endpointConfig);
 
         var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -164,7 +168,7 @@ public class CsvProcessorService
                     if (shouldProcessBatch)
                     {
                         var batchTimer = Stopwatch.StartNew();
-                        var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
+                        var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun, endpointName);
                         batchTimer.Stop();
                         
                         _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);
@@ -205,7 +209,7 @@ public class CsvProcessorService
                 if (batch.Count > 0)
                 {
                     var batchTimer = Stopwatch.StartNew();
-                    var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun);
+                    var errors = await _apiClientService.ProcessBatchAsync(httpClient, batch, config, executionPaths.LogPath, headers, dryRun, endpointName);
                     batchTimer.Stop();
                     
                     _metricsService.RecordBatchTime(batchTimer.ElapsedMilliseconds);

@@ -17,11 +17,8 @@ public class CommandLineOptions
     public int? MaxLines { get; set; }
     public string? ExecutionId { get; set; }
     
-    // Configurações de API
-    public string? EndpointUrl { get; set; }
-    public string? AuthToken { get; set; }
-    public string? Method { get; set; }
-    public int? RequestTimeout { get; set; }
+    // Seleção de endpoint
+    public string? EndpointName { get; set; }
     
     // Opções de processamento
     public bool Verbose { get; set; }

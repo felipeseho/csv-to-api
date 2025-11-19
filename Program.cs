@@ -73,21 +73,9 @@ public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
         [Description("UUID da execução para continuar de um checkpoint existente")]
         public string? ExecutionId { get; set; }
 
-        [CommandOption("-e|--endpoint")]
-        [Description("URL do endpoint da API (sobrescreve config)")]
-        public string? Endpoint { get; set; }
-
-        [CommandOption("-a|--auth-token")]
-        [Description("Token de autenticação Bearer (sobrescreve config)")]
-        public string? AuthToken { get; set; }
-
-        [CommandOption("-m|--method")]
-        [Description("Método HTTP: POST ou PUT (sobrescreve config)")]
-        public string? Method { get; set; }
-
-        [CommandOption("-t|--timeout")]
-        [Description("Timeout das requisições em segundos (sobrescreve config)")]
-        public int? Timeout { get; set; }
+        [CommandOption("--endpoint-name")]
+        [Description("Nome do endpoint configurado a ser usado (sobrescreve CSV)")]
+        public string? EndpointName { get; set; }
 
         [CommandOption("-v|--verbose")]
         [Description("Exibir logs detalhados")]
@@ -134,10 +122,7 @@ public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
                 StartLine = settings.StartLine,
                 MaxLines = settings.MaxLines,
                 ExecutionId = currentExecutionId,
-                EndpointUrl = settings.Endpoint,
-                AuthToken = settings.AuthToken,
-                Method = settings.Method,
-                RequestTimeout = settings.Timeout,
+                EndpointName = settings.EndpointName,
                 Verbose = settings.Verbose,
                 DryRun = settings.DryRun
             };
@@ -156,7 +141,7 @@ public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
                 if (settings.BatchLines != null) configTable.AddRow("Batch Lines", settings.BatchLines.ToString()!);
                 if (settings.StartLine != null) configTable.AddRow("Start Line", settings.StartLine.ToString()!);
                 if (settings.MaxLines != null) configTable.AddRow("Max Lines", settings.MaxLines.ToString()!);
-                if (settings.Endpoint != null) configTable.AddRow("Endpoint", settings.Endpoint);
+                if (settings.EndpointName != null) configTable.AddRow("Endpoint Name", settings.EndpointName);
                 if (settings.DryRun) configTable.AddRow("[yellow]Modo[/]", "[yellow]DRY RUN[/]");
 
                 AnsiConsole.Write(configTable);
@@ -213,8 +198,16 @@ public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
             // Gerar caminhos de execução
             var executionPaths = configService.GenerateExecutionPaths(config, currentExecutionId);
 
-            // Inicializar ApiClientService com a configuração da API e MetricsService
-            var apiClientService = new ApiClientService(loggingService, config.Api, metricsService);
+            // Usar primeiro endpoint ou default para inicializar ApiClientService
+            var referenceEndpoint = config.Endpoints.FirstOrDefault();
+            if (referenceEndpoint == null)
+            {
+                AnsiConsole.MarkupLine("[red]✗ Nenhum endpoint configurado[/]");
+                return 1;
+            }
+            
+            // Inicializar ApiClientService com o endpoint de referência e MetricsService
+            var apiClientService = new ApiClientService(loggingService, referenceEndpoint, metricsService);
             var processorService = new CsvProcessorService(validationService, loggingService, apiClientService, checkpointService, metricsService);
 
             if (settings.DryRun)
@@ -227,7 +220,7 @@ public class ProcessCommand : AsyncCommand<ProcessCommand.Settings>
             AnsiConsole.WriteLine();
 
             // Processar arquivo CSV
-            await processorService.ProcessCsvFileAsync(config, executionPaths, settings.DryRun);
+            await processorService.ProcessCsvFileAsync(config, executionPaths, settings.DryRun, cmdOptions.EndpointName);
 
             // Sucesso
             var successRule = new Rule("[green]✓ Processamento concluído com sucesso![/]")

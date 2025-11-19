@@ -64,17 +64,15 @@ dotnet run -- -c /caminho/para/config.yaml
 # Sobrescrever arquivo CSV de entrada
 dotnet run -- --input data/outro-arquivo.csv
 
-# Sobrescrever endpoint da API
-dotnet run -- --endpoint https://api.producao.com/upload
+# Sobrescrever endpoint a ser usado
+dotnet run -- --endpoint-name producao
 
 # Sobrescrever múltiplas configurações
 dotnet run -- \
   --config config.yaml \
   --input data/vendas.csv \
   --batch-lines 500 \
-  --endpoint https://api.example.com/vendas \
-  --auth-token "Bearer xyz123" \
-  --timeout 60 \
+  --endpoint-name homologacao \
   --verbose
 
 # Processar com logs detalhados
@@ -85,7 +83,7 @@ dotnet run -- --verbose
 ```bash
 ./bin/Debug/net10.0/CsvToApi --help
 ./bin/Debug/net10.0/CsvToApi --config /caminho/para/config.yaml
-./bin/Debug/net10.0/CsvToApi -i data/input.csv -e https://api.com/upload -v
+./bin/Debug/net10.0/CsvToApi -i data/input.csv --endpoint-name producao -v
 ```
 
 ## Argumentos de Linha de Comando
@@ -101,11 +99,9 @@ Todos os argumentos são opcionais e sobrescrevem as configurações do arquivo 
 | `--max-lines` | `-n` | Número máximo de linhas a processar | `--max-lines 1000` |
 | `--log-path` | `-l` | Caminho do arquivo de log | `--log-path logs/erros.log` |
 | `--delimiter` | `-d` | Delimitador do CSV | `--delimiter ";"` |
-| `--endpoint` | `-e` | URL do endpoint da API | `--endpoint https://api.com/upload` |
-| `--auth-token` | `-a` | Token de autenticação Bearer | `--auth-token "Bearer xyz123"` |
-| `--method` | `-m` | Método HTTP (POST ou PUT) | `--method PUT` |
-| `--timeout` | `-t` | Timeout das requisições (segundos) | `--timeout 60` |
+| `--endpoint-name` | | Nome do endpoint configurado a ser usado | `--endpoint-name webhook1` |
 | `--verbose` | `-v` | Exibir logs detalhados | `--verbose` |
+| `--dry-run` | | Modo de teste: não faz requisições reais | `--dry-run` |
 
 ### Exemplos Práticos
 
@@ -114,14 +110,14 @@ Todos os argumentos são opcionais e sobrescrevem as configurações do arquivo 
 dotnet run -- -i data/clientes-2024.csv -v
 ```
 
-**Usar configuração de produção com endpoint específico:**
+**Usar endpoint específico:**
 ```bash
-dotnet run -- -c config.prod.yaml -e https://prod.api.com/data
+dotnet run -- --endpoint-name producao -v
 ```
 
-**Teste rápido com lotes pequenos e timeout maior:**
+**Teste rápido com lotes pequenos:**
 ```bash
-dotnet run -- -b 10 -t 120 -v
+dotnet run -- -b 10 -v
 ```
 
 **Processar arquivo com delimitador ponto-e-vírgula:**
@@ -152,8 +148,9 @@ file:
     batchLines: 100                       # Número de linhas por lote
     startLine: 1                          # Linha inicial (padrão: 1)
     maxLines: 1000                        # Número máximo de linhas a processar (opcional)
-    logPath: "logs/process.log"           # Arquivo de log de erros
+    logDirectory: "logs"                  # Diretório de logs
     csvDelimiter: ","                     # Delimitador do CSV
+    checkpointDirectory: "checkpoints"    # Diretório de checkpoints
     mapping:                              # Validações de colunas
         - column: "Name"
           type: "string"
@@ -164,11 +161,23 @@ file:
           type: "date"
           format: "YYYY-MM-DD"
 
-api:
+# Nome da coluna CSV que contém o nome do endpoint (opcional)
+endpointColumnName: "Endpoint"
+
+# Endpoint padrão quando não especificado (opcional)
+# Se não configurado e houver apenas 1 endpoint, ele será usado automaticamente
+defaultEndpoint: "webhook1"
+
+# Lista de endpoints (obrigatório - pelo menos um)
+endpoints:
+  - name: "webhook1"
     endpointUrl: "https://api.example.com/upload"
     authToken: "your_auth_token_here"     # Token de autenticação (opcional)
     method: "POST"                        # POST ou PUT
     requestTimeout: 30                    # Timeout em segundos
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
     mapping:                              # Mapeamento CSV -> API
       - attribute: "name"
         csvColumn: "Name"                 # Valor vem da coluna CSV
@@ -183,6 +192,115 @@ api:
         fixedValue: "csv-import"          # Valor fixo para todos os registros
       - attribute: "version"
         fixedValue: "1.0"
+```
+
+## Múltiplos Endpoints
+
+A aplicação trabalha com endpoints nomeados, permitindo rotear diferentes linhas do CSV para diferentes APIs.
+
+### Configuração de Endpoints
+
+```yaml
+# Endpoint padrão quando não especificado (opcional)
+defaultEndpoint: "webhook1"
+
+# Nome da coluna CSV que define qual endpoint usar (opcional)
+endpointColumnName: "Endpoint"
+
+# Lista de endpoints (obrigatório - pelo menos um)
+endpoints:
+  - name: "webhook1"
+    endpointUrl: "https://webhook.site/endpoint1"
+    authToken: "token_endpoint1"
+    method: "POST"
+    requestTimeout: 30
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
+    mapping:
+      - attribute: "name"
+        csvColumn: "Name"
+        transform: "uppercase"
+      - attribute: "source"
+        fixedValue: "endpoint1"
+  
+  - name: "webhook2"
+    endpointUrl: "https://webhook.site/endpoint2"
+    authToken: "token_endpoint2"
+    method: "POST"
+    requestTimeout: 30
+    mapping:
+      - attribute: "fullName"
+        csvColumn: "Name"
+      - attribute: "source"
+        fixedValue: "endpoint2"
+```
+
+### Formas de Selecionar o Endpoint
+
+#### 1. Via Argumento de Linha de Comando (Prioridade 1)
+
+Aplica o mesmo endpoint para todas as linhas:
+
+```bash
+dotnet run -- --endpoint-name webhook1
+```
+
+#### 2. Via Coluna CSV (Prioridade 2)
+
+Configure `endpointColumnName` no YAML e adicione uma coluna no CSV:
+
+**config.yaml:**
+```yaml
+endpointColumnName: "Endpoint"
+```
+
+**input.csv:**
+```csv
+Name,Email,Endpoint
+John Doe,john@example.com,webhook1
+Jane Smith,jane@example.com,webhook2
+Bob Johnson,bob@example.com,webhook1
+```
+
+Cada linha será enviada para o endpoint especificado na coluna.
+
+#### 3. Endpoint Padrão (Prioridade 3)
+
+Configure `defaultEndpoint` no YAML:
+
+**config.yaml:**
+```yaml
+defaultEndpoint: "webhook1"
+```
+
+#### 4. Endpoint Único Automático (Prioridade 4)
+
+Se houver apenas um endpoint configurado e nenhum dos anteriores estiver definido, ele será usado automaticamente.
+
+### Exemplos Práticos
+
+**Processar todas as linhas usando webhook1:**
+```bash
+dotnet run -- --endpoint-name webhook1
+```
+
+**Processar com seleção dinâmica via CSV:**
+```bash
+dotnet run -- --config config.yaml
+# Cada linha define seu endpoint na coluna "Endpoint"
+```
+
+**Combinar: usar endpoint via argumento sobrescreve CSV:**
+```bash
+dotnet run -- --endpoint-name webhook2
+# Ignora a coluna "Endpoint" do CSV e usa webhook2 para tudo
+```
+
+**Usar endpoint padrão:**
+```bash
+dotnet run
+# Usa o endpoint definido em 'defaultEndpoint'
 ```
 
 ## Formato do Arquivo de Log

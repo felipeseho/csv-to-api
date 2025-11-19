@@ -18,9 +18,20 @@ file:
           type: "date"
           format: "YYYY-MM-DD"
 
-api:
+# Nome da coluna CSV que contém o nome do endpoint a ser usado (opcional)
+# Se configurada, cada linha pode especificar qual endpoint usar
+# endpointColumnName: "Endpoint"
+
+# Endpoint padrão a ser usado quando não especificado via --endpoint-name ou coluna CSV (opcional)
+# Se não configurado e houver apenas 1 endpoint, ele será usado automaticamente
+defaultEndpoint: "webhook1"
+
+# Lista de endpoints nomeados (obrigatório - deve ter pelo menos um)
+# Cada endpoint tem sua própria URL, autenticação e mapeamento
+endpoints:
+  - name: "webhook1"
     endpointUrl: "https://webhook.site/5a9cd902-118f-4f2d-9778-3ea4f14e70be"
-    authToken: "your_auth_token_here"
+    authToken: "token_endpoint1"
     method: "POST"
     requestTimeout: 30
     retryAttempts: 3
@@ -35,11 +46,31 @@ api:
         transform: "lowercase"
       - attribute: "address.street"
         csvColumn: "Street"
-        transform: "title-case"
-      - attribute: "birthdate"
+      - attribute: "dob"
         csvColumn: "Birthdate"
-      # Exemplo de parâmetro com valor fixo
-      - attribute: "dri"
-        fixedValue: "csv-import"
-      - attribute: "version"
-        fixedValue: "1.0"
+        transform: "date-format:DD/MM/YYYY"
+      - attribute: "source"
+        fixedValue: "endpoint1"
+  
+  - name: "webhook2"
+    endpointUrl: "https://webhook.site/5a9cd902-118f-4f2d-9778-3ea4f14e70be"
+    authToken: "token_endpoint1"
+    method: "PUT"
+    requestTimeout: 30
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
+    mapping:
+      - attribute: "user.name"
+        csvColumn: "Name"
+        transform: "uppercase"
+      - attribute: "user.email"
+        csvColumn: "Email"
+        transform: "lowercase"
+      - attribute: "address.street"
+        csvColumn: "Street"
+      - attribute: "user.dob"
+        csvColumn: "Birthdate"
+        transform: "date-format:DD/MM/YYYY"
+      - attribute: "source"
+        fixedValue: "endpoint1"

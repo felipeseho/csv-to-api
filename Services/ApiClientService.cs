@@ -17,22 +17,22 @@ public class ApiClientService
     private readonly SemaphoreSlim? _rateLimiter;
     private readonly Timer? _rateLimitTimer;
 
-    public ApiClientService(LoggingService loggingService, ApiConfiguration apiConfig, MetricsService? metricsService = null)
+    public ApiClientService(LoggingService loggingService, NamedEndpoint endpointConfig, MetricsService? metricsService = null)
     {
         _loggingService = loggingService;
         _metricsService = metricsService;
         
         // Configurar rate limiting se especificado
-        if (apiConfig.MaxRequestsPerSecond.HasValue && apiConfig.MaxRequestsPerSecond.Value > 0)
+        if (endpointConfig.MaxRequestsPerSecond.HasValue && endpointConfig.MaxRequestsPerSecond.Value > 0)
         {
-            _rateLimiter = new SemaphoreSlim(0, apiConfig.MaxRequestsPerSecond.Value);
+            _rateLimiter = new SemaphoreSlim(0, endpointConfig.MaxRequestsPerSecond.Value);
             _rateLimitTimer = new Timer(_ =>
             {
                 try
                 {
                     // Liberar tokens a cada segundo
                     var currentCount = _rateLimiter.CurrentCount;
-                    var tokensToRelease = apiConfig.MaxRequestsPerSecond.Value - currentCount;
+                    var tokensToRelease = endpointConfig.MaxRequestsPerSecond.Value - currentCount;
                     if (tokensToRelease > 0)
                     {
                         _rateLimiter.Release(tokensToRelease);
@@ -49,18 +49,18 @@ public class ApiClientService
     /// <summary>
     /// Cria e configura o HttpClient
     /// </summary>
-    public HttpClient CreateHttpClient(ApiConfiguration apiConfig)
+    public HttpClient CreateHttpClient(NamedEndpoint endpointConfig)
     {
         var httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(apiConfig.RequestTimeout)
+            Timeout = TimeSpan.FromSeconds(endpointConfig.RequestTimeout)
         };
 
         // Configurar autenticação
-        if (!string.IsNullOrWhiteSpace(apiConfig.AuthToken))
+        if (!string.IsNullOrWhiteSpace(endpointConfig.AuthToken))
         {
             httpClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", apiConfig.AuthToken);
+                new AuthenticationHeaderValue("Bearer", endpointConfig.AuthToken);
         }
 
         return httpClient;
@@ -70,10 +70,10 @@ public class ApiClientService
     /// Processa um lote de registros
     /// </summary>
     public async Task<int> ProcessBatchAsync(HttpClient httpClient, List<CsvRecord> batch, 
-        Configuration config, string logPath, string[] headers, bool dryRun = false)
+        Configuration config, string logPath, string[] headers, bool dryRun = false, string? commandLineEndpointName = null)
     {
         // Processar em paralelo para melhor performance
-        var tasks = batch.Select(record => ProcessRecordAsync(httpClient, record, config, logPath, headers, dryRun));
+        var tasks = batch.Select(record => ProcessRecordAsync(httpClient, record, config, logPath, headers, dryRun, commandLineEndpointName));
         var results = await Task.WhenAll(tasks);
 
         return results.Count(r => !r);
@@ -83,7 +83,7 @@ public class ApiClientService
     /// Processa um único registro
     /// </summary>
     private async Task<bool> ProcessRecordAsync(HttpClient httpClient, CsvRecord record, 
-        Configuration config, string logPath, string[] headers, bool dryRun = false)
+        Configuration config, string logPath, string[] headers, bool dryRun = false, string? commandLineEndpointName = null)
     {
         // Aguardar rate limiter se configurado
         if (_rateLimiter != null)
@@ -93,8 +93,23 @@ public class ApiClientService
 
         try
         {
+            // Determinar qual endpoint usar
+            var endpointName = commandLineEndpointName; // Prioridade 1: Argumento linha de comando
+            
+            // Prioridade 2: Coluna CSV (se configurada)
+            if (string.IsNullOrWhiteSpace(endpointName) && !string.IsNullOrWhiteSpace(config.EndpointColumnName))
+            {
+                if (record.Data.TryGetValue(config.EndpointColumnName, out var csvEndpointName))
+                {
+                    endpointName = csvEndpointName;
+                }
+            }
+            
+            // Selecionar configuração de API apropriada
+            var apiConfig = GetEndpointConfiguration(config, endpointName);
+            
             // Construir payload da API
-            var payload = PayloadBuilder.BuildApiPayload(record, config.Api.Mapping);
+            var payload = PayloadBuilder.BuildApiPayload(record, apiConfig.Mapping);
             var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions 
             { 
                 WriteIndented = false 
@@ -103,11 +118,12 @@ public class ApiClientService
             // Modo dry run: apenas simula o envio
             if (dryRun)
             {
-                Console.WriteLine($"[DRY RUN] Linha {record.LineNumber}: {json}");
+                var endpointInfo = string.IsNullOrWhiteSpace(endpointName) ? "default" : endpointName;
+                Console.WriteLine($"[DRY RUN] Linha {record.LineNumber} [endpoint: {endpointInfo}]: {json}");
                 return true;
             }
 
-            return await SendWithRetryAsync(httpClient, config, logPath, json, record, headers);
+            return await SendWithRetryAsync(httpClient, apiConfig, logPath, json, record, headers);
         }
         catch (Exception ex)
         {
@@ -115,18 +131,58 @@ public class ApiClientService
             return false;
         }
     }
+    
+    /// <summary>
+    /// Retorna a configuração do endpoint apropriado
+    /// </summary>
+    private NamedEndpoint GetEndpointConfiguration(Configuration config, string? endpointName)
+    {
+        // Se não há nome de endpoint especificado, usar endpoint padrão configurado
+        if (string.IsNullOrWhiteSpace(endpointName))
+        {
+            if (!string.IsNullOrWhiteSpace(config.DefaultEndpoint))
+            {
+                endpointName = config.DefaultEndpoint;
+            }
+            else if (config.Endpoints.Count == 1)
+            {
+                // Se há apenas um endpoint, usar ele
+                return config.Endpoints[0];
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Nome do endpoint não especificado. Use --endpoint-name, configure 'endpointColumnName' no CSV, " +
+                    "ou defina 'defaultEndpoint' na configuração. " +
+                    $"Endpoints disponíveis: {string.Join(", ", config.Endpoints.Select(e => e.Name))}");
+            }
+        }
+        
+        // Buscar endpoint pelo nome
+        var endpoint = config.Endpoints.FirstOrDefault(e => 
+            e.Name.Equals(endpointName, StringComparison.OrdinalIgnoreCase));
+        
+        if (endpoint == null)
+        {
+            throw new InvalidOperationException(
+                $"Endpoint '{endpointName}' não encontrado na configuração. " +
+                $"Endpoints disponíveis: {string.Join(", ", config.Endpoints.Select(e => e.Name))}");
+        }
+        
+        return endpoint;
+    }
 
     /// <summary>
     /// Envia requisição com retry policy
     /// </summary>
-    private async Task<bool> SendWithRetryAsync(HttpClient httpClient, Configuration config, 
+    private async Task<bool> SendWithRetryAsync(HttpClient httpClient, NamedEndpoint endpointConfig, 
         string logPath, string json, CsvRecord record, string[] headers)
     {
         int attempts = 0;
         Exception? lastException = null;
         var requestTimer = Stopwatch.StartNew();
 
-        while (attempts < config.Api.RetryAttempts)
+        while (attempts < endpointConfig.RetryAttempts)
         {
             attempts++;
             
@@ -135,17 +191,17 @@ public class ApiClientService
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response;
-                if (config.Api.Method.ToUpper() == "POST")
+                if (endpointConfig.Method.ToUpper() == "POST")
                 {
-                    response = await httpClient.PostAsync(config.Api.EndpointUrl, content);
+                    response = await httpClient.PostAsync(endpointConfig.EndpointUrl, content);
                 }
-                else if (config.Api.Method.ToUpper() == "PUT")
+                else if (endpointConfig.Method.ToUpper() == "PUT")
                 {
-                    response = await httpClient.PutAsync(config.Api.EndpointUrl, content);
+                    response = await httpClient.PutAsync(endpointConfig.EndpointUrl, content);
                 }
                 else
                 {
-                    throw new NotSupportedException($"Método HTTP '{config.Api.Method}' não suportado");
+                    throw new NotSupportedException($"Método HTTP '{endpointConfig.Method}' não suportado");
                 }
 
                 requestTimer.Stop();
@@ -164,10 +220,10 @@ public class ApiClientService
                     // Se for erro do servidor (5xx) ou timeout, tentar novamente
                     if ((int)response.StatusCode >= 500 || response.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
                     {
-                        if (attempts < config.Api.RetryAttempts)
+                        if (attempts < endpointConfig.RetryAttempts)
                         {
-                            Console.WriteLine($"Tentativa {attempts}/{config.Api.RetryAttempts} falhou (HTTP {(int)response.StatusCode}). Aguardando {config.Api.RetryDelaySeconds}s...");
-                            await Task.Delay(config.Api.RetryDelaySeconds * 1000);
+                            Console.WriteLine($"Tentativa {attempts}/{endpointConfig.RetryAttempts} falhou (HTTP {(int)response.StatusCode}). Aguardando {endpointConfig.RetryDelaySeconds}s...");
+                            await Task.Delay(endpointConfig.RetryDelaySeconds * 1000);
                             requestTimer.Restart();
                             continue;
                         }
@@ -186,10 +242,10 @@ public class ApiClientService
             catch (HttpRequestException ex)
             {
                 lastException = ex;
-                if (attempts < config.Api.RetryAttempts)
+                if (attempts < endpointConfig.RetryAttempts)
                 {
-                    Console.WriteLine($"Tentativa {attempts}/{config.Api.RetryAttempts} falhou ({ex.Message}). Aguardando {config.Api.RetryDelaySeconds}s...");
-                    await Task.Delay(config.Api.RetryDelaySeconds * 1000);
+                    Console.WriteLine($"Tentativa {attempts}/{endpointConfig.RetryAttempts} falhou ({ex.Message}). Aguardando {endpointConfig.RetryDelaySeconds}s...");
+                    await Task.Delay(endpointConfig.RetryDelaySeconds * 1000);
                     requestTimer.Restart();
                     continue;
                 }
@@ -197,10 +253,10 @@ public class ApiClientService
             catch (TaskCanceledException ex)
             {
                 lastException = ex;
-                if (attempts < config.Api.RetryAttempts)
+                if (attempts < endpointConfig.RetryAttempts)
                 {
-                    Console.WriteLine($"Tentativa {attempts}/{config.Api.RetryAttempts} timeout. Aguardando {config.Api.RetryDelaySeconds}s...");
-                    await Task.Delay(config.Api.RetryDelaySeconds * 1000);
+                    Console.WriteLine($"Tentativa {attempts}/{endpointConfig.RetryAttempts} timeout. Aguardando {endpointConfig.RetryDelaySeconds}s...");
+                    await Task.Delay(endpointConfig.RetryDelaySeconds * 1000);
                     requestTimer.Restart();
                     continue;
                 }

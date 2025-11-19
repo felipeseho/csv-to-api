@@ -1,10 +1,11 @@
 namespace CsvToApi.Models;
 
 /// <summary>
-/// Configuração da API REST
+/// Configuração de um endpoint
 /// </summary>
-public class ApiConfiguration
+public class NamedEndpoint
 {
+    public string Name { get; set; } = string.Empty;
     public string EndpointUrl { get; set; } = string.Empty;
     public string AuthToken { get; set; } = string.Empty;
     public string Method { get; set; } = "POST";

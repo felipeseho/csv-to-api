@@ -9,11 +9,17 @@ Para testar a aplicação com uma API real sem precisar criar um servidor, você
 3. Atualize o `config.yaml`:
 
 ```yaml
-api:
+endpoints:
+  - name: "teste"
     endpointUrl: "https://webhook.site/sua-url-unica-aqui"
     authToken: ""
     method: "POST"
     requestTimeout: 30
+    mapping:
+      - attribute: "name"
+        csvColumn: "Name"
+      - attribute: "email"
+        csvColumn: "Email"
 ```
 
 4. Execute o programa:
@@ -31,8 +37,9 @@ dotnet run
 file:
     inputPath: "data/usuarios.csv"
     batchLines: 50
-    logPath: "logs/usuarios.log"
+    logDirectory: "logs"
     csvDelimiter: ","
+    checkpointDirectory: "checkpoints"
     mapping:
         - column: "Nome Completo"
           type: "string"
@@ -49,7 +56,8 @@ file:
           type: "string"
           regex: "^\\d{5}-\\d{3}$"
 
-api:
+endpoints:
+  - name: "usuarios"
     endpointUrl: "https://api.exemplo.com.br/api/v1/usuarios"
     authToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     method: "POST"
@@ -386,5 +394,154 @@ Cada linha do CSV gera um payload com dados dinâmicos + valores fixos:
    - attribute: "metadata.importedBy"
      fixedValue: "sistema-batch"
    ```
+
+## Exemplo 4: Múltiplos Endpoints
+
+### Caso de Uso: Rotear dados para diferentes sistemas baseado em tipo de cliente
+
+Este exemplo mostra como enviar dados de diferentes clientes para endpoints específicos.
+
+### Arquivo CSV (clientes.csv)
+```csv
+Nome,Email,TipoCliente,Telefone
+João Silva,joao@empresa.com,premium,11999999999
+Maria Santos,maria@email.com,basic,11888888888
+Pedro Costa,pedro@premium.com,premium,11777777777
+Ana Oliveira,ana@email.com,basic,11666666666
+```
+
+### Configuração com Múltiplos Endpoints
+
+```yaml
+file:
+    inputPath: "data/clientes.csv"
+    batchLines: 50
+    logDirectory: "logs"
+    csvDelimiter: ","
+    checkpointDirectory: "checkpoints"
+    mapping:
+        - column: "Nome"
+          type: "string"
+        - column: "Email"
+          type: "string"
+          regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        - column: "TipoCliente"
+          type: "string"
+        - column: "Telefone"
+          type: "string"
+
+# Nome da coluna que define qual endpoint usar
+endpointColumnName: "TipoCliente"
+
+# Configuração padrão (caso TipoCliente não seja reconhecido)
+api:
+    endpointUrl: "https://api.sistema.com/clientes/default"
+    authToken: "token_default"
+    method: "POST"
+    requestTimeout: 30
+    mapping:
+      - attribute: "nome"
+        csvColumn: "Nome"
+      - attribute: "email"
+        csvColumn: "Email"
+      - attribute: "categoria"
+        fixedValue: "standard"
+
+# Endpoints específicos por tipo de cliente
+endpoints:
+  - name: "premium"
+    endpointUrl: "https://api.premium.com/clientes"
+    authToken: "token_premium_abc123"
+    method: "POST"
+    requestTimeout: 45
+    retryAttempts: 5
+    retryDelaySeconds: 10
+    maxRequestsPerSecond: 20
+    mapping:
+      - attribute: "nomeCompleto"
+        csvColumn: "Nome"
+        transform: "title-case"
+      - attribute: "emailContato"
+        csvColumn: "Email"
+        transform: "lowercase"
+      - attribute: "telefone"
+        csvColumn: "Telefone"
+      - attribute: "categoria"
+        fixedValue: "premium"
+      - attribute: "prioridade"
+        fixedValue: "alta"
+      - attribute: "sla"
+        fixedValue: "24h"
+  
+  - name: "basic"
+    endpointUrl: "https://api.basico.com/usuarios"
+    authToken: "token_basic_xyz789"
+    method: "POST"
+    requestTimeout: 30
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
+    mapping:
+      - attribute: "nome"
+        csvColumn: "Nome"
+      - attribute: "email"
+        csvColumn: "Email"
+      - attribute: "categoria"
+        fixedValue: "basic"
+      - attribute: "prioridade"
+        fixedValue: "normal"
+```
+
+### Payloads Gerados
+
+**Cliente Premium (João Silva):**
+```json
+{
+  "nomeCompleto": "João Silva",
+  "emailContato": "joao@empresa.com",
+  "telefone": "11999999999",
+  "categoria": "premium",
+  "prioridade": "alta",
+  "sla": "24h"
+}
+```
+*Enviado para: https://api.premium.com/clientes*
+
+**Cliente Basic (Maria Santos):**
+```json
+{
+  "nome": "Maria Santos",
+  "email": "maria@email.com",
+  "categoria": "basic",
+  "prioridade": "normal"
+}
+```
+*Enviado para: https://api.basico.com/usuarios*
+
+### Execução
+
+**Processar usando a coluna TipoCliente do CSV:**
+```bash
+dotnet run -- --config config.yaml --verbose
+```
+
+**Forçar todos para endpoint premium (ignora coluna CSV):**
+```bash
+dotnet run -- --config config.yaml --endpoint-name premium
+```
+
+**Forçar todos para endpoint basic:**
+```bash
+dotnet run -- --endpoint-name basic
+```
+
+### Vantagens dessa Abordagem
+
+1. **Flexibilidade**: Cada tipo de cliente pode ter endpoint, autenticação e mapeamento próprios
+2. **Performance**: Diferentes limites de rate limiting por endpoint
+3. **SLA**: Diferentes configurações de timeout e retry por prioridade
+4. **Estrutura de dados**: Payloads customizados para cada sistema
+5. **Fallback**: Configuração padrão para casos não mapeados
+
 
 
