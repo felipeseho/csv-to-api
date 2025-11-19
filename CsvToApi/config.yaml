@@ -1,0 +1,32 @@
+file:
+    inputPath: "data/input.csv"
+    batchLines: 100
+    startLine: 1
+    logPath: "logs/process.log"
+    csvDelimiter: ","
+    mapping:
+        - column: "Name"
+          type: "string"
+        - column: "Email"
+          type: "string"
+          regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        - column: "Street"
+          type: "string"
+        - column: "Birthdate"
+          type: "date"
+          format: "YYYY-MM-DD"
+
+api:
+    endpointUrl: "https://webhook.site/5a9cd902-118f-4f2d-9778-3ea4f14e70be"
+    authToken: "your_auth_token_here"
+    method: "POST"
+    requestTimeout: 30
+    mapping:
+      - attribute: "name"
+        csvColumn: "Name"
+      - attribute: "email"
+        csvColumn: "Email"
+      - attribute: "address.street"
+        csvColumn: "Street"
+      - attribute: "birthdate"
+        csvColumn: "Birthdate"

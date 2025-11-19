@@ -1,0 +1,32 @@
+# Build results
+bin/
+obj/
+publish/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+logs/
+*.log
+
+# Data files (optional - uncomment if you don't want to commit data)
+# data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+config-production.yaml
+*.secret.yaml
+
