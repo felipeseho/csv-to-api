@@ -51,7 +51,7 @@
         endpointUrl: "..."
   ```
 
-- [ ] **Transformações de Dados**: Modificar valores antes de enviar
+- [x] **Transformações de Dados**: Modificar valores antes de enviar
   ```yaml
   mapping:
       - attribute: "name"

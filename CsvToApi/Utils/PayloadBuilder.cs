@@ -21,11 +21,14 @@ public static class PayloadBuilder
                 continue;
             }
 
+            // Aplicar transformação se especificada
+            var transformedValue = DataTransformer.ApplyTransformation(value, mapping.Transform);
+
             // Suportar atributos aninhados (ex: "address.street")
             var parts = mapping.Attribute.Split('.');
             if (parts.Length == 1)
             {
-                payload[mapping.Attribute] = value;
+                payload[mapping.Attribute] = transformedValue;
             }
             else
             {
@@ -39,7 +42,7 @@ public static class PayloadBuilder
                     }
                     current = (Dictionary<string, object>)current[parts[i]];
                 }
-                current[parts[^1]] = value;
+                current[parts[^1]] = transformedValue;
             }
         }
 

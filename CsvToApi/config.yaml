@@ -24,9 +24,12 @@ api:
     mapping:
       - attribute: "name"
         csvColumn: "Name"
+        transform: "uppercase"
       - attribute: "email"
         csvColumn: "Email"
+        transform: "lowercase"
       - attribute: "address.street"
         csvColumn: "Street"
+        transform: "title-case"
       - attribute: "birthdate"
         csvColumn: "Birthdate"
