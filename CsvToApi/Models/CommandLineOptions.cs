@@ -24,4 +24,5 @@ public class CommandLineOptions
     // Opções de processamento
     public bool Verbose { get; set; }
     public int? MaxParallelism { get; set; }
+    public bool DryRun { get; set; }
 }

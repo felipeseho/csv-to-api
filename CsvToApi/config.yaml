@@ -4,6 +4,7 @@ file:
     startLine: 1
     logPath: "logs/process.log"
     csvDelimiter: ","
+    checkpointPath: "checkpoints/progress.json"
     mapping:
         - column: "Name"
           type: "string"
@@ -21,6 +22,9 @@ api:
     authToken: "your_auth_token_here"
     method: "POST"
     requestTimeout: 30
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
     mapping:
       - attribute: "name"
         csvColumn: "Name"

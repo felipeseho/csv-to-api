@@ -11,34 +11,13 @@
 - [x] Autenticação Bearer Token
 - [x] Atributos aninhados no payload
 - [x] Top-level statements (.NET 10)
+- [x] Transformações de dados
+- [x] Retry Policy (tentativas automáticas)
+- [x] Rate Limiting (controle de requisições/segundo)
+- [x] Modo Dry Run (teste sem requisições reais)
+- [x] Checkpoint/Resume (retomar processamento)
 
 ## 🚀 Melhorias Futuras
-
-### Alta Prioridade
-
-- [ ] **Retry Policy**: Tentar novamente em caso de erro temporário
-  ```yaml
-  api:
-      retryAttempts: 3
-      retryDelaySeconds: 5
-  ```
-
-- [ ] **Rate Limiting**: Controlar taxa de requisições
-  ```yaml
-  api:
-      maxRequestsPerSecond: 10
-  ```
-
-- [ ] **Modo Dry Run**: Testar sem fazer requisições reais
-  ```bash
-  dotnet run -- config.yaml --dry-run
-  ```
-
-- [ ] **Retomar Processamento**: Continuar de onde parou
-  ```yaml
-  file:
-      checkpointPath: "checkpoints/progress.json"
-  ```
 
 ### Média Prioridade
 
@@ -49,14 +28,6 @@
         endpointUrl: "..."
       - name: "Backup"
         endpointUrl: "..."
-  ```
-
-- [x] **Transformações de Dados**: Modificar valores antes de enviar
-  ```yaml
-  mapping:
-      - attribute: "name"
-        csvColumn: "Name"
-        transform: "uppercase"
   ```
 
 - [ ] **Compressão de Payload**: Enviar dados compactados
@@ -81,88 +52,6 @@
 - [ ] **Modo Batch**: Processar múltiplos arquivos
 - [ ] **Exportação de Sucessos**: Arquivo com linhas processadas com sucesso
 - [ ] **Estatísticas Detalhadas**: Tempo médio por requisição, etc.
-
-## 🛠️ Exemplos de Implementação
-
-### 1. Retry Policy
-
-```csharp
-private async Task<bool> ProcessRecordWithRetryAsync(...)
-{
-    int attempts = 0;
-    while (attempts < config.Api.RetryAttempts)
-    {
-        try
-        {
-            // ... fazer requisição ...
-            return true;
-        }
-        catch (HttpRequestException)
-        {
-            attempts++;
-            if (attempts >= config.Api.RetryAttempts)
-                throw;
-            await Task.Delay(config.Api.RetryDelaySeconds * 1000);
-        }
-    }
-    return false;
-}
-```
-
-### 2. Rate Limiting
-
-```csharp
-private readonly SemaphoreSlim _rateLimiter;
-private readonly Timer _rateLimitTimer;
-
-// Liberar semáforo periodicamente
-_rateLimitTimer = new Timer(_ => {
-    _rateLimiter.Release(config.Api.MaxRequestsPerSecond);
-}, null, 0, 1000);
-
-// Antes de cada requisição
-await _rateLimiter.WaitAsync();
-```
-
-### 3. Checkpoint/Resume
-
-```csharp
-private async Task SaveCheckpoint(int lineNumber)
-{
-    var checkpoint = new { LastProcessedLine = lineNumber };
-    await File.WriteAllTextAsync(
-        config.File.CheckpointPath,
-        JsonSerializer.Serialize(checkpoint)
-    );
-}
-
-private int LoadCheckpoint()
-{
-    if (!File.Exists(config.File.CheckpointPath))
-        return 0;
-    
-    var json = File.ReadAllText(config.File.CheckpointPath);
-    var checkpoint = JsonSerializer.Deserialize<Checkpoint>(json);
-    return checkpoint?.LastProcessedLine ?? 0;
-}
-```
-
-### 4. Transformações
-
-```csharp
-private string TransformValue(string value, string? transform)
-{
-    return transform switch
-    {
-        "uppercase" => value.ToUpper(),
-        "lowercase" => value.ToLower(),
-        "trim" => value.Trim(),
-        "remove-spaces" => value.Replace(" ", ""),
-        "format-cpf" => FormatCpf(value),
-        _ => value
-    };
-}
-```
 
 ## 🎨 Arquitetura Melhorada
 

@@ -63,6 +63,10 @@ public class Program
             aliases: new[] { "--verbose", "-v" },
             description: "Exibir logs detalhados");
 
+        var dryRunOption = new Option<bool>(
+            aliases: new[] { "--dry-run", "--test" },
+            description: "Modo de teste: não faz requisições reais");
+
         // Adicionar opções ao comando raiz
         rootCommand.AddOption(configOption);
         rootCommand.AddOption(inputOption);
@@ -75,17 +79,20 @@ public class Program
         rootCommand.AddOption(methodOption);
         rootCommand.AddOption(timeoutOption);
         rootCommand.AddOption(verboseOption);
+        rootCommand.AddOption(dryRunOption);
 
         // Handler do comando usando binding individual (limitado a 8 parâmetros)
         rootCommand.SetHandler(
             async (configPath, inputPath, batchLines, logPath, delimiter, startLine, endpoint, verbose) =>
             {
                 // Obter método e timeout do ParseResult se necessário
-                var authToken = rootCommand.Parse(args).GetValueForOption(authTokenOption);
-                var method = rootCommand.Parse(args).GetValueForOption(methodOption);
-                var timeout = rootCommand.Parse(args).GetValueForOption(timeoutOption);
+                var parseResult = rootCommand.Parse(args);
+                var authToken = parseResult.GetValueForOption(authTokenOption);
+                var method = parseResult.GetValueForOption(methodOption);
+                var timeout = parseResult.GetValueForOption(timeoutOption);
+                var dryRun = parseResult.GetValueForOption(dryRunOption);
                 
-                await ProcessCsvAsync(configPath, inputPath, batchLines, logPath, delimiter, startLine, endpoint, authToken, method, timeout, verbose);
+                await ProcessCsvAsync(configPath, inputPath, batchLines, logPath, delimiter, startLine, endpoint, authToken, method, timeout, verbose, dryRun);
             },
             configOption,
             inputOption,
@@ -111,7 +118,8 @@ public class Program
         string? authToken,
         string? method,
         int? timeout,
-        bool verbose)
+        bool verbose,
+        bool dryRun)
     {
         try
         {
@@ -136,7 +144,8 @@ public class Program
                 AuthToken = authToken,
                 Method = method,
                 RequestTimeout = timeout,
-                Verbose = verbose
+                Verbose = verbose,
+                DryRun = dryRun
             };
 
             if (verbose)
@@ -147,14 +156,14 @@ public class Program
                 if (batchLines != null) Console.WriteLine($"  Batch Lines: {batchLines}");
                 if (startLine != null) Console.WriteLine($"  Start Line: {startLine}");
                 if (endpoint != null) Console.WriteLine($"  Endpoint: {endpoint}");
+                if (dryRun) Console.WriteLine($"  🔍 MODO DRY RUN ATIVADO");
             }
 
             // Inicializar serviços
             var configService = new ConfigurationService();
             var validationService = new ValidationService();
             var loggingService = new LoggingService();
-            var apiClientService = new ApiClientService(loggingService);
-            var processorService = new CsvProcessorService(validationService, loggingService, apiClientService);
+            var checkpointService = new CheckpointService();
 
             // Carregar configuração do YAML
             var config = configService.LoadConfiguration(configPath);
@@ -171,10 +180,19 @@ public class Program
             // Criar diretórios necessários
             configService.EnsureDirectoriesExist(config);
 
+            // Inicializar ApiClientService com a configuração da API
+            var apiClientService = new ApiClientService(loggingService, config.Api);
+            var processorService = new CsvProcessorService(validationService, loggingService, apiClientService, checkpointService);
+
+            if (dryRun)
+            {
+                Console.WriteLine("🔍 MODO DRY RUN: Nenhuma requisição será enviada à API");
+            }
+
             Console.WriteLine("🚀 Iniciando processamento do arquivo CSV...");
 
             // Processar arquivo CSV
-            await processorService.ProcessCsvFileAsync(config);
+            await processorService.ProcessCsvFileAsync(config, dryRun);
 
             Console.WriteLine("✅ Processamento concluído com sucesso!");
         }
