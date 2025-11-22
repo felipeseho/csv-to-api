@@ -1,3 +1,4 @@
+using System.Reflection;
 using n2n.Models;
 using Spectre.Console;
 
@@ -11,24 +12,15 @@ public class DashboardService(
     private readonly int _maxLogMessages = 10;
     
     // Application info
-    private string _appName = "n2n: De qualquer origem para qualquer destino";
-    private string _appVersion = "0.8.0";
-    private string _appDescription = "A ferramenta definitiva para integrar seus dados. Conecte Arquivos, APIs e Bancos de Dados em fluxos unificados, sem complexidade.";
+    // Get assembly title and version dynamically if needed
+    
+    private readonly string _appName = Assembly.GetExecutingAssembly().GetName().Name!;
+    private readonly string _appVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString()!;
+    private readonly string _appDescription = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description!;
     
     // State
     private bool _isRunning;
-
-    /// <summary>
-    ///     Configura informações da aplicação
-    /// </summary>
-    public void SetApplicationInfo(string name, string version, string description)
-    {
-        _appName = name;
-        _appVersion = version;
-        _appDescription = description;
-    }
-
-
+    
     /// <summary>
     ///     Adiciona mensagem de log ao footer
     /// </summary>
@@ -44,7 +36,16 @@ public class DashboardService(
             _ => "grey"
         };
         
-        var formattedMessage = $"[grey]{timestamp}[/] [{color}]{level}[/] {message}";
+        var levelIcon = level.ToUpper() switch
+        {
+            "ERROR" => "❌",
+            "WARNING" => "⚠️",
+            "SUCCESS" => "✅",
+            "INFO" => "ℹ️ ",
+            _ => "."
+        };
+        
+        var formattedMessage = $"[grey]{timestamp}[/] [{color}]{levelIcon}[/] {message}";
         _logMessages.Add(formattedMessage);
         
         // Manter apenas as últimas N mensagens
@@ -134,7 +135,7 @@ public class DashboardService(
             new Layout("Progress").Ratio(1)
         );
         
-        layout["Body"]["Row2"]["API"].Update(CreateApiPanel());
+        layout["Body"]["Row2"]["API"].Update(CreateEndpointPanel());
         layout["Body"]["Row2"]["Progress"].Update(CreateProgressPanel(metrics));
 
         // Footer com logs
@@ -173,19 +174,19 @@ public class DashboardService(
 
         // Parâmetros de arquivo
         grid.AddRow(new Markup("[underline cyan1]Arquivo:[/]"), new Markup(""));
-        grid.AddRow("  CSV Delimiter:", $"[yellow]'{context.Configuration.File.CsvDelimiter}'[/]");
-        grid.AddRow("  Batch Lines:", $"[yellow]{context.Configuration.File.BatchLines:N0}[/]");
-        grid.AddRow("  Start Line:", $"[yellow]{context.Configuration.File.StartLine:N0}[/]");
+        grid.AddRow("  Delimitador CSV:", $"[yellow]'{context.Configuration.File.CsvDelimiter}'[/]");
+        grid.AddRow("  Linhas por Lote:", $"[yellow]{context.Configuration.File.BatchLines:N0}[/]");
+        grid.AddRow("  Linha Inicial:", $"[yellow]{context.Configuration.File.StartLine:N0}[/]");
         
         if (context.Configuration.File.MaxLines.HasValue)
-            grid.AddRow("  Max Lines:", $"[yellow]{context.Configuration.File.MaxLines.Value:N0}[/]");
+            grid.AddRow("  Linhas Máximas:", $"[yellow]{context.Configuration.File.MaxLines.Value:N0}[/]");
         
         grid.AddEmptyRow();
         
         // Parâmetros de checkpoint
         grid.AddRow(new Markup("[underline cyan1]Checkpoint:[/]"), new Markup(""));
-        grid.AddRow("  Directory:", $"[yellow]{context.Configuration.File.CheckpointDirectory}[/]");
-        grid.AddRow("  Execution ID:", $"[yellow]{context.ExecutionPaths.ExecutionId}[/]");
+        grid.AddRow("  Diretório:", $"[yellow]{context.Configuration.File.CheckpointDirectory}[/]");
+        grid.AddRow("  ID da Execução:", $"[yellow]{context.ExecutionPaths.ExecutionId}[/]");
         
         // Verificar se há checkpoint existente
         var hasCheckpoint = !string.IsNullOrEmpty(context.ExecutionPaths.CheckpointPath) && 
@@ -198,8 +199,8 @@ public class DashboardService(
         
         // Parâmetros de log
         grid.AddRow(new Markup("[underline cyan1]Logs:[/]"), new Markup(""));
-        grid.AddRow("  Directory:", $"[yellow]{context.Configuration.File.LogDirectory}[/]");
-        grid.AddRow("  Verbose:", context.IsVerbose ? "[green]Sim[/]" : "[grey]Não[/]");
+        grid.AddRow("  Diretório:", $"[yellow]{context.Configuration.File.LogDirectory}[/]");
+        grid.AddRow("  Detalhado:", context.IsVerbose ? "[green]Sim[/]" : "[grey]Não[/]");
         
         if (context.IsDryRun)
         {
@@ -240,6 +241,12 @@ public class DashboardService(
         // Obter total de linhas do MetricsService
         var metrics = metricsService.GetMetrics();
         grid.AddRow("[cyan1]Total Linhas:[/]", $"[yellow]{metrics.TotalLines:N0}[/]");
+        
+        // Obter linhas filtradas do MetricsService
+        if (metrics.FilteredLines > 0)
+        {
+            grid.AddRow("[cyan1]Filtradas:[/]", $"[grey]{metrics.FilteredLines:N0} linhas[/]");
+        }
 
         // Obter informações de filtros das colunas configuradas
         var filtersCount = context.Configuration.File.Columns.Count(c => c.Filter != null);
@@ -247,14 +254,13 @@ public class DashboardService(
         {
             grid.AddEmptyRow();
             grid.AddRow("[cyan1]Filtros:[/]", $"[blue]{filtersCount} coluna(s) com filtros[/]");
+            grid.AddEmptyRow();
+            foreach (var column in context.Configuration.File.Columns.Where(c => c.Filter != null).Take(3))
+            {
+                grid.AddRow($"  🔍 {column.Column} [yellow]{column.Filter?.Operator}[/]" , $"[grey]{column.Filter?.Value}[/]");
+            }
         }
-
-        // Obter linhas filtradas do MetricsService
-        if (metrics.FilteredLines > 0)
-        {
-            grid.AddRow("[cyan1]Filtradas:[/]", $"[grey]{metrics.FilteredLines:N0} linhas[/]");
-        }
-
+        
         return new Panel(grid)
             .Header("[bold cyan1]📄 ARQUIVO[/]", Justify.Center)
             .BorderColor(Color.Blue)
@@ -263,18 +269,19 @@ public class DashboardService(
     }
 
     /// <summary>
-    ///     Cria o painel de informações da API
+    ///     Cria o painel de informações do Endpoint
     /// </summary>
-    private Panel CreateApiPanel()
+    private Panel CreateEndpointPanel()
     {
         var grid = new Grid()
             .AddColumn(new GridColumn().NoWrap().PadRight(2))
             .AddColumn();
 
-        grid.AddRow("[cyan1]Endpoint:[/]", $"[yellow]{ShortenUrl(context.ActiveEndpoint.EndpointUrl)}[/]");
+        grid.AddRow("[cyan1]Url:[/]", $"[yellow]{ShortenUrl(context.ActiveEndpoint.EndpointUrl)}[/]");
         grid.AddRow("[cyan1]Método:[/]", $"[green]{context.ActiveEndpoint.Method}[/]");
         grid.AddRow("[cyan1]Timeout:[/]", $"[yellow]{context.ActiveEndpoint.RequestTimeout}s[/]");
-        grid.AddRow("[cyan1]Retry:[/]", $"[yellow]{context.ActiveEndpoint.RetryAttempts}x[/]");
+        grid.AddRow("[cyan1]Tentativas:[/]", $"[yellow]{context.ActiveEndpoint.RetryAttempts}x[/]");
+        grid.AddRow("[cyan1]Atraso entre Tentativas:[/]", $"[yellow]{context.ActiveEndpoint.RetryDelaySeconds}s[/]");
 
         if (context.ActiveEndpoint.Headers.Count > 0)
         {
@@ -292,7 +299,7 @@ public class DashboardService(
         }
 
         return new Panel(grid)
-            .Header("[bold cyan1]🌐 API[/]", Justify.Center)
+            .Header("[bold cyan1]🌐 ENDPOINT[/]", Justify.Center)
             .BorderColor(Color.Green)
             .Padding(0, 0)
             .Expand();
@@ -350,15 +357,15 @@ public class DashboardService(
 
         statsGrid.AddRow("[cyan1]Processadas:[/]",
             $"[yellow]{metrics.ProcessedLines:N0}[/] / [grey]{metrics.TotalLines:N0}[/]");
-        statsGrid.AddRow("[green]✓ Sucessos:[/]",
+        statsGrid.AddRow("[green]✅ Sucessos:[/]",
             $"[green]{metrics.SuccessCount:N0}[/] [grey]({metrics.SuccessRate:F1}%)[/]");
-        statsGrid.AddRow("[red]✗ Erros:[/]", $"[red]{metrics.ErrorCount:N0}[/] [grey]({metrics.ErrorRate:F1}%)[/]");
+        statsGrid.AddRow("[red]❌ Erros:[/]", $"[red]{metrics.ErrorCount:N0}[/] [grey]({metrics.ErrorRate:F1}%)[/]");
 
         if (metrics.ValidationErrors > 0)
-            statsGrid.AddRow("[yellow]⚠ Validação:[/]", $"[yellow]{metrics.ValidationErrors:N0}[/]");
+            statsGrid.AddRow("[yellow]⚠️ Validação:[/]", $"[yellow]{metrics.ValidationErrors:N0}[/]");
 
         if (metrics.SkippedLines > 0)
-            statsGrid.AddRow("[grey]⏭  Puladas:[/]", $"[grey]{metrics.SkippedLines:N0}[/]");
+            statsGrid.AddRow("[grey]⏭️  Puladas:[/]", $"[grey]{metrics.SkippedLines:N0}[/]");
 
         grid.AddRow(statsGrid);
         grid.AddEmptyRow();
@@ -369,7 +376,7 @@ public class DashboardService(
             .AddColumn();
 
         var elapsed = metrics.ElapsedTime;
-        timeGrid.AddRow("[cyan1]⏱  Decorrido:[/]", $"[yellow]{FormatTimeSpan(elapsed)}[/]");
+        timeGrid.AddRow("[cyan1]⏱️  Decorrido:[/]", $"[yellow]{FormatTimeSpan(elapsed)}[/]");
 
         if (metrics.ProcessedLines > 0 && metrics.ProcessedLines < metrics.TotalLines)
             timeGrid.AddRow("[cyan1]⏳ Estimado:[/]", $"[yellow]{FormatTimeSpan(metrics.EstimatedTimeRemaining)}[/]");
@@ -389,11 +396,11 @@ public class DashboardService(
             httpGrid.AddRow("[cyan1]Resp. Média:[/]", $"[yellow]{metrics.AverageResponseTimeMs:F0} ms[/]");
 
             if (metrics.MinResponseTimeMs != long.MaxValue)
-                httpGrid.AddRow("[cyan1]Min / Max:[/]",
+                httpGrid.AddRow("[cyan1]Mín / Máx:[/]",
                     $"[green]{metrics.MinResponseTimeMs}[/] / [red]{metrics.MaxResponseTimeMs}[/] ms");
 
             if (metrics.TotalRetries > 0)
-                httpGrid.AddRow("[cyan1]Retries:[/]", $"[yellow]{metrics.TotalRetries}[/]");
+                httpGrid.AddRow("[cyan1]Tentativas:[/]", $"[yellow]{metrics.TotalRetries}[/]");
 
             grid.AddRow(httpGrid);
         }

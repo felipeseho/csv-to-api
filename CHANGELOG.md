@@ -5,7 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [0.8.0] - 2024-11-20
+## [0.8.1] - 2025-11-22
+
+### Modificado
+
+- **Rebranding do projeto**: Renomeado de "n2n" para **"n2n"** (Any to Any)
+- Novo título: "n2n: De qualquer origem para qualquer destino"
+- Nova descrição: "A ferramenta definitiva para integrar seus dados. Conecte Arquivos, APIs e Bancos de Dados em fluxos unificados, sem complexidade."
+- Atualização da identidade visual e posicionamento do produto
+
+## [0.8.0] - 2025-11-20
 
 ### Adicionado
 
@@ -36,7 +45,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `ProcessingMetrics`: Adicionada propriedade `FilteredLines`
 - Removidas mensagens de progresso intermediárias em favor do dashboard
 
-## [0.7.0] - 2024-11-19
+## [0.7.0] - 2025-11-19
 
 ### Adicionado
 
@@ -52,7 +61,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Documentação atualizada com exemplos de múltiplos endpoints
 - Interface de visualização mostrando qual endpoint está sendo usado
 
-## [0.6.0] - 2024-11-19
+## [0.6.0] - 2025-11-19
 
 ### Adicionado
 
@@ -71,7 +80,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Feedback visual durante processamento
 - Exibição de estatísticas e métricas
 
-## [0.5.0] - 2024-11-19
+## [0.5.0] - 2025-11-19
 
 ### Adicionado
 
@@ -89,7 +98,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Logs mostram quantidade de linhas filtradas
 - Métricas incluem informações sobre filtros aplicados
 
-## [0.4.0] - 2024-11-19
+## [0.4.0] - 2025-11-19
 
 ### Adicionado
 
@@ -109,7 +118,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Processamento de dados antes do envio para API
 - Flexibilidade no tratamento de dados do CSV
 
-## [0.3.0] - 2024-11-19
+## [0.3.0] - 2025-11-19
 
 ### Adicionado
 
@@ -128,7 +137,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Testes sem impacto em APIs de produção
 - Organização de logs e checkpoints
 
-## [0.2.0] - 2024-11-19
+## [0.2.0] - 2025-11-19
 
 ### Adicionado
 
@@ -152,7 +161,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Possibilidade de sobrescrever configurações do YAML
 - Experiência de uso mais intuitiva
 
-## [0.1.0] - 2024-11-19
+## [0.1.0] - 2025-11-19
 
 ### Adicionado
 

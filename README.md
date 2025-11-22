@@ -1,8 +1,8 @@
-# CSV to API - Processador de Arquivos CSV
+# n2n: De qualquer origem para qualquer destino
 
-**Versão**: 0.7.0 | [Changelog](CHANGELOG.md)
+**Versão**: 0.8.1 | [Changelog](CHANGELOG.md)
 
-Aplicação .NET 10 que processa arquivos CSV em lotes e envia os dados para uma API REST.
+A ferramenta definitiva para integrar seus dados. Conecte Arquivos, APIs e Bancos de Dados em fluxos unificados, sem complexidade.
 
 ## ✨ Interface Visual Moderna com Spectre.Console
 
@@ -95,9 +95,9 @@ dotnet run -- --verbose
 ### Execução do executável compilado
 
 ```bash
-./bin/Debug/net10.0/CsvToApi --help
-./bin/Debug/net10.0/CsvToApi --config /caminho/para/config.yaml
-./bin/Debug/net10.0/CsvToApi -i data/input.csv --endpoint-name producao -v
+./bin/Debug/net10.0/n2n --help
+./bin/Debug/net10.0/n2n --config /caminho/para/config.yaml
+./bin/Debug/net10.0/n2n -i data/input.csv --endpoint-name producao -v
 ```
 
 ## Argumentos de Linha de Comando
@@ -409,10 +409,10 @@ LineNumber,Name,Email,Street,Birthdate,HttpCode,ErrorMessage
 ## Estrutura do Projeto
 
 ```
-CsvToApi/
+n2n/
 ├── Program.cs           # Código principal (top-level statements)
 ├── config.yaml          # Arquivo de configuração
-├── CsvToApi.csproj      # Arquivo do projeto
+├── n2n.csproj      # Arquivo do projeto
 ├── data/
 │   └── input.csv        # Arquivo CSV de entrada
 └── logs/

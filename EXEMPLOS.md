@@ -212,7 +212,7 @@ done
 
 ```bash
 # Executar todos os dias às 2h da manhã
-0 2 * * * cd /path/to/CsvToApi && dotnet run -- config-diario.yaml
+0 2 * * * cd /path/to/n2n && dotnet run -- config-diario.yaml
 ```
 
 ## Troubleshooting

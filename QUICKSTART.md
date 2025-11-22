@@ -1,4 +1,4 @@
-# 🚀 Quick Start - CsvToApi
+# 🚀 Quick Start - n2n
 
 ## Em 5 Minutos
 
@@ -11,7 +11,7 @@ dotnet --version  # Deve ser >= 10.0
 ### 2. Navegar para o Projeto
 
 ```bash
-cd /Users/felipeseho/Development/felipeseho/csv-to-api/CsvToApi/CsvToApi
+cd /Users/felipeseho/Development/felipeseho/n2n/n2n
 ```
 
 ### 3. Restaurar Dependências
@@ -101,9 +101,9 @@ endpoints:
 ## Estrutura Mínima Necessária
 
 ```
-CsvToApi/
+n2n/
 ├── Program.cs              # ✅ Código principal
-├── CsvToApi.csproj         # ✅ Projeto
+├── n2n.csproj         # ✅ Projeto
 ├── config.yaml             # ✅ Configuração
 └── data/
     └── input.csv           # ✅ Seu arquivo CSV
@@ -179,7 +179,7 @@ cat logs/errors.log
 dotnet publish -c Release -r osx-arm64 --self-contained
 
 # Executar
-./bin/Release/net10.0/osx-arm64/publish/CsvToApi
+./bin/Release/net10.0/osx-arm64/publish/n2n
 ```
 
 ## Comandos Úteis
