@@ -59,9 +59,6 @@ public class MainCommand : AsyncCommand<MainCommandSettings>
                 DryRun = settings.DryRun
             };
             
-            // Configurar informações da aplicação no Dashboard
-            _dashboardService.SetApplicationInfo("n2n", "1.0.0", "CSV to API Data Processor");
-            
             // Carregar e validar configuração
             _dashboardService.AddLogMessage("Carregando configuração...", "INFO");
             var config = _configurationService.LoadConfiguration(settings.ConfigPath);

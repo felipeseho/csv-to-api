@@ -11,9 +11,9 @@ public class DashboardService(
     private readonly int _maxLogMessages = 10;
     
     // Application info
-    private string _appName = "n2n - No Name to Nibble";
-    private string _appVersion = "1.0.0";
-    private string _appDescription = "CSV to API Data Processor";
+    private string _appName = "n2n: De qualquer origem para qualquer destino";
+    private string _appVersion = "0.8.0";
+    private string _appDescription = "A ferramenta definitiva para integrar seus dados. Conecte Arquivos, APIs e Bancos de Dados em fluxos unificados, sem complexidade.";
     
     // State
     private bool _isRunning;
@@ -150,11 +150,11 @@ public class DashboardService(
     private Panel CreateHeaderPanel()
     {
         var grid = new Grid()
-            .AddColumn(new GridColumn().Centered());
+            .AddColumn(new GridColumn().LeftAligned());
 
-        grid.AddRow(new Markup($"[bold cyan1]{_appName}[/]").Centered());
-        grid.AddRow(new Markup($"[grey]{_appDescription}[/]").Centered());
-        grid.AddRow(new Markup($"[grey]Versão {_appVersion}[/]").Centered());
+        grid.AddRow(new Markup($"[bold cyan1]{_appName}[/]"));
+        grid.AddRow(new Markup($"[grey]{_appDescription}[/]"));
+        grid.AddRow(new Markup($"[grey]Versão {_appVersion}[/]"));
 
         return new Panel(grid)
             .BorderColor(Color.Cyan1)
