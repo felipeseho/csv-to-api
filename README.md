@@ -1,582 +1,574 @@
-# n2n: De qualquer origem para qualquer destino
+<div align="center">
+  <h1>🚀 n2n - Any to Any</h1>
+  <p><strong>A ferramenta definitiva para integrar seus dados de qualquer origem com APIs REST</strong></p>
 
-**Versão**: 0.8.1 | [Changelog](CHANGELOG.md)
+  <p>
+    <a href="#-funcionalidades">Funcionalidades</a> •
+    <a href="#-requisitos">Requisitos</a> •
+    <a href="#-instalação">Instalação</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#-comandos-e-argumentos">Comandos</a> •
+    <a href="#-exemplos">Exemplos</a>
+  </p>
 
-A ferramenta definitiva para integrar seus dados. Conecte Arquivos, APIs e Bancos de Dados em fluxos unificados, sem complexidade.
+  <p>
+    <img src="https://img.shields.io/badge/version-0.8.2-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/.NET-10.0-512BD4.svg" alt=".NET 10">
+    <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
+  </p>
+</div>
 
-## ✨ Interface Visual Moderna com Spectre.Console
+---
 
-Este projeto utiliza a biblioteca [Spectre.Console](https://spectreconsole.net/) para oferecer uma experiência de
-console rica e visualmente atraente:
+## 📋 Sobre o Projeto
+
+**n2n** é uma ferramenta de linha de comando poderosa e eficiente que permite processar arquivos CSV e enviar os dados para APIs REST de forma automatizada. Ideal para migrações de dados, integrações em lote, sincronização de sistemas e automação de processos.
+
+Com uma interface visual moderna e intuitiva, n2n oferece monitoramento em tempo real, sistema de checkpoints para retomada de processamento e suporte a múltiplos endpoints com roteamento dinâmico.
+
+### 💡 Por que usar n2n?
+
+- ✅ **Simplicidade**: Configure em minutos com arquivos YAML
+- ✅ **Performance**: Processamento em lote com paralelismo otimizado
+- ✅ **Confiabilidade**: Sistema de checkpoints e retry automático
+- ✅ **Flexibilidade**: Múltiplos endpoints, transformações e filtros de dados
+- ✅ **Visibilidade**: Dashboard em tempo real com métricas detalhadas
+
+---
+
+## 🖼️ Interface Moderna
+
+![Dashboard n2n](docs/dashboard.png)
+
+### ✨ Recursos Visuais
+
+O n2n utiliza [Spectre.Console](https://spectreconsole.net/) para oferecer uma experiência de console rica e moderna:
 
 - 🎨 **Banner ASCII Art** estilizado
 - 📊 **Dashboard de métricas** em tempo real
-- 📈 **Barras de progresso** animadas
+- 📈 **Barras de progresso** animadas e responsivas
 - 🎯 **Tabelas formatadas** para configurações e resultados
 - 🌈 **Cores temáticas** para diferentes tipos de mensagens
-- ⚡ **Spinners animados** durante operações
+- ⚡ **Spinners animados** durante operações assíncronas
 
-Veja detalhes completos em [SPECTRE_CONSOLE.md](SPECTRE_CONSOLE.md)
+---
 
-## Funcionalidades
+## ✨ Funcionalidades
 
-- ✅ Leitura de arquivos CSV grandes em lotes configuráveis
-- ✅ Validação de dados com regex e formatos de data
-- ✅ **Filtros de dados para processar apenas linhas específicas**
-- ✅ **Transformações de dados (20+ transformações disponíveis)**
-- ✅ **Múltiplos endpoints nomeados com roteamento dinâmico**
-- ✅ Processamento paralelo para alta performance
-- ✅ Chamadas HTTP (POST/PUT) para API REST
-- ✅ Log de erros com informações detalhadas (linha, HTTP code, mensagem)
-- ✅ **Sistema de checkpoints com UUID por execução**
-- ✅ **Modo dry-run para testes sem requisições reais**
-- ✅ Suporte a atributos aninhados no payload da API (ex: `address.street`)
-- ✅ Configuração via arquivo YAML
-- ✅ Autenticação Bearer Token e headers customizados
-- ✅ **Argumentos de linha de comando para sobrescrever configurações**
-- ✅ **Interface visual moderna e interativa com Spectre.Console**
-- ✅ Valores fixos e dinâmicos no payload da API
+### 🎯 Processamento de Dados
+- ✅ **Leitura inteligente de CSV** com processamento em lotes configuráveis
+- ✅ **Validação robusta** com regex e formatos de data personalizados
+- ✅ **Filtros avançados** para processar apenas linhas específicas
+- ✅ **20+ transformações de dados** (uppercase, format-cpf, slugify, etc.)
 
-## Requisitos
+### 🌐 Integração com APIs
+- ✅ **Múltiplos endpoints** com roteamento dinâmico por linha
+- ✅ **Métodos HTTP** (POST/PUT) com headers customizados
+- ✅ **Autenticação** Bearer Token e API Keys
+- ✅ **Payloads aninhados** (ex: `address.street`, `user.profile.name`)
 
-- .NET 10 SDK
-- Arquivo de configuração YAML
+### 🚀 Performance e Confiabilidade
+- ✅ **Processamento paralelo** otimizado para alta performance
+- ✅ **Sistema de checkpoints** com UUID único por execução
+- ✅ **Retry automático** com backoff configurável
+- ✅ **Rate limiting** para controle de requisições
 
-## Instalação
+### 🛠️ Operação e Monitoramento
+- ✅ **Dashboard em tempo real** com métricas detalhadas
+- ✅ **Logs estruturados** com rastreamento completo de erros
+- ✅ **Modo dry-run** para testes sem requisições reais
+- ✅ **Argumentos CLI** para sobrescrever configurações rapidamente
+
+---
+
+## 📦 Requisitos
+
+Antes de começar, certifique-se de ter instalado:
+
+- **[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)** ou superior
+- **Sistema Operacional**: Windows, macOS ou Linux
+
+### Verificando a instalação
+
+```bash
+dotnet --version
+# Deve retornar 10.0.x ou superior
+```
+
+---
+
+## 🔧 Instalação
+
+### 1️⃣ Clone o repositório
+
+```bash
+git clone https://github.com/felipeseho/n2n.git
+cd n2n
+```
+
+### 2️⃣ Restaure as dependências
 
 ```bash
 dotnet restore
+```
+
+### 3️⃣ Compile o projeto
+
+```bash
 dotnet build
 ```
 
-## Uso
-
-### Ajuda e Opções Disponíveis
+### 4️⃣ (Opcional) Compile para produção
 
 ```bash
+dotnet publish -c Release -o ./publish
+```
+
+Isso criará um executável otimizado na pasta `publish/`.
+
+---
+
+## 🚀 Quick Start
+
+### Execução Básica
+
+```bash
+# Usar configuração padrão (config.yaml)
+dotnet run
+
+# Ver todas as opções disponíveis
 dotnet run -- --help
 ```
 
-### Execução básica (usando config.yaml padrão)
+### Teste Rápido com Webhook.site
+
+Teste a aplicação sem configurar uma API real:
 
 ```bash
-dotnet run
+# 1. Acesse https://webhook.site e copie sua URL única
+# 2. Execute com sua URL
+dotnet run -- --endpoint "https://webhook.site/SUA-URL-AQUI" --verbose
+
+# 3. Acompanhe as requisições em tempo real no webhook.site
 ```
 
-### Execução com arquivo de configuração customizado
+### Exemplos de Uso Comum
 
 ```bash
-dotnet run -- --config /caminho/para/config.yaml
-# ou forma curta
-dotnet run -- -c /caminho/para/config.yaml
-```
+# Processar arquivo específico
+dotnet run -- --input data/clientes.csv --verbose
 
-### Sobrescrever configurações via argumentos
-
-```bash
-# Sobrescrever arquivo CSV de entrada
-dotnet run -- --input data/outro-arquivo.csv
-
-# Sobrescrever endpoint a ser usado
+# Usar endpoint configurado
 dotnet run -- --endpoint-name producao
 
-# Sobrescrever múltiplas configurações
-dotnet run -- \
-  --config config.yaml \
-  --input data/vendas.csv \
-  --batch-lines 500 \
-  --endpoint-name homologacao \
-  --verbose
+# Modo de teste (sem requisições reais)
+dotnet run -- --dry-run --verbose
 
-# Processar com logs detalhados
-dotnet run -- --verbose
+# Processar apenas primeiras 100 linhas
+dotnet run -- --max-lines 100 --verbose
+
+# Continuar execução a partir de checkpoint
+dotnet run -- --execution-id abc-123-def-456 --verbose
 ```
 
-### Execução do executável compilado
+---
 
-```bash
-./bin/Debug/net10.0/n2n --help
-./bin/Debug/net10.0/n2n --config /caminho/para/config.yaml
-./bin/Debug/net10.0/n2n -i data/input.csv --endpoint-name producao -v
-```
+## ⚙️ Comandos e Argumentos
 
-## Argumentos de Linha de Comando
+### 📋 Referência Rápida
 
 Todos os argumentos são opcionais e sobrescrevem as configurações do arquivo YAML:
 
-| Argumento | Forma Curta | Descrição | Exemplo |
-|-----------|-------------|-----------|---------||
-| `--config` | `-c` | Caminho do arquivo de configuração YAML | `--config config.yaml` |
-| `--input` | `-i` | Caminho do arquivo CSV de entrada | `--input data/vendas.csv` |
-| `--batch-lines` | `-b` | Número de linhas por lote | `--batch-lines 500` |
-| `--start-line` | `-s` | Linha inicial para começar o processamento | `--start-line 100` |
-| `--max-lines` | `-n` | Número máximo de linhas a processar | `--max-lines 1000` |
-| `--log-dir` | `-l` | Diretório onde os logs serão salvos | `--log-dir logs` |
+| Argumento | Atalho | Descrição | Exemplo |
+|-----------|--------|-----------|---------|
+| `--config` | `-c` | Arquivo de configuração YAML | `--config config.yaml` |
+| `--input` | `-i` | Arquivo CSV de entrada | `--input data/vendas.csv` |
+| `--batch-lines` | `-b` | Linhas processadas por lote | `--batch-lines 500` |
+| `--start-line` | `-s` | Linha inicial do processamento | `--start-line 100` |
+| `--max-lines` | `-n` | Máximo de linhas a processar | `--max-lines 1000` |
+| `--log-dir` | `-l` | Diretório de logs | `--log-dir logs/prod` |
 | `--delimiter` | `-d` | Delimitador do CSV | `--delimiter ";"` |
-| `--execution-id` | `--exec-id` | UUID da execução para continuar checkpoint | `--exec-id abc-123...` |
-| `--endpoint-name` | | Nome do endpoint configurado a ser usado | `--endpoint-name webhook1` |
+| `--execution-id` | `--exec-id` | UUID para continuar checkpoint | `--exec-id abc-123...` |
+| `--endpoint-name` | | Nome do endpoint a ser usado | `--endpoint-name producao` |
 | `--verbose` | `-v` | Exibir logs detalhados | `--verbose` |
-| `--dry-run` | `--test` | Modo de teste: não faz requisições reais | `--dry-run` |
+| `--dry-run` | `--test` | Testar sem fazer requisições | `--dry-run` |
 
-### Exemplos Práticos
+### 💡 Exemplos Práticos
 
-**Processar arquivo diferente mantendo outras configurações:**
-
+**Processar arquivo com endpoint específico:**
 ```bash
-dotnet run -- -i data/clientes-2024.csv -v
+dotnet run -- -i data/clientes.csv --endpoint-name producao -v
 ```
 
-**Usar endpoint específico:**
-
+**Testar primeiras 50 linhas:**
 ```bash
-dotnet run -- --endpoint-name producao -v
+dotnet run -- -i data/teste.csv -n 50 --dry-run -v
 ```
 
-**Teste rápido com lotes pequenos:**
-
-```bash
-dotnet run -- -b 10 -v
-```
-
-**Processar arquivo com delimitador ponto-e-vírgula:**
-
+**Processar com delimitador customizado:**
 ```bash
 dotnet run -- -i data/export.csv -d ";" -v
 ```
 
-**Continuar processamento a partir de uma linha específica:**
-
+**Retomar processamento de um checkpoint:**
 ```bash
-# Útil para retomar processamento após falha
-dotnet run -- -i data/vendas.csv -s 1001 -v
-```
-
-**Processar apenas as primeiras N linhas (útil para testes):**
-
-```bash
-# Processar apenas as primeiras 100 linhas
-dotnet run -- -i data/vendas.csv -n 100 -v
-
-# Processar um intervalo específico (ex: linhas 101-200)
-dotnet run -- -i data/vendas.csv -s 101 -n 100 -v
-```
-
-**Modo Dry-Run (teste sem requisições reais):**
-
-```bash
-# Validar configuração e dados sem fazer chamadas HTTP
-dotnet run -- --dry-run -v
-dotnet run -- --test -v
-```
-
-**Execution ID e Checkpoints:**
-
-```bash
-# Nova execução (gera UUID automaticamente)
-dotnet run
-
-# Continuar execução existente usando o UUID
 dotnet run -- --execution-id 6869cdf3-5fb0-4178-966d-9a21015ffb4d -v
-
-# Cada execução tem seus próprios arquivos:
-# - logs/process_{uuid}.log
-# - checkpoints/checkpoint_{uuid}.json
 ```
 
-## Configuração (config.yaml)
-
-```yaml
-file:
-    inputPath: "data/input.csv"           # Caminho do arquivo CSV
-    batchLines: 100                       # Número de linhas por lote
-    startLine: 1                          # Linha inicial (padrão: 1)
-    maxLines: 1000                        # Número máximo de linhas a processar (opcional)
-    logDirectory: "logs"                  # Diretório de logs
-    csvDelimiter: ","                     # Delimitador do CSV
-    checkpointDirectory: "checkpoints"    # Diretório de checkpoints
-    mapping:                              # Validações de colunas
-        - column: "Name"
-          type: "string"
-        - column: "Email"
-          type: "string"
-          regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-        - column: "Birthdate"
-          type: "date"
-          format: "YYYY-MM-DD"
-
-# Nome da coluna CSV que contém o nome do endpoint (opcional)
-endpointColumnName: "Endpoint"
-
-# Endpoint padrão quando não especificado (opcional)
-# Se não configurado e houver apenas 1 endpoint, ele será usado automaticamente
-defaultEndpoint: "webhook1"
-
-# Lista de endpoints (obrigatório - pelo menos um)
-endpoints:
-  - name: "webhook1"
-    endpointUrl: "https://api.example.com/upload"
-    headers:                              # Headers HTTP customizados (opcional)
-      Authorization: "Bearer your_auth_token_here"
-      X-Custom-Header: "valor-customizado"
-      X-API-Key: "sua-chave-api"
-    method: "POST"                        # POST ou PUT
-    requestTimeout: 30                    # Timeout em segundos
-    retryAttempts: 3
-    retryDelaySeconds: 5
-    maxRequestsPerSecond: 10
-    mapping:                              # Mapeamento CSV -> API
-      - attribute: "name"
-        csvColumn: "Name"                 # Valor vem da coluna CSV
-        transform: "uppercase"            # Opcional: transformação de dados
-      - attribute: "email"
-        csvColumn: "Email"
-        transform: "lowercase"            # Converter para minúsculas
-      - attribute: "address.street"       # Suporta atributos aninhados
-        csvColumn: "Street"
-        transform: "title-case"           # Primeira letra maiúscula
-      - attribute: "birthdate"
-        csvColumn: "Birthdate"
-      - attribute: "cpf"
-        csvColumn: "CPF"
-        transform: "format-cpf"           # Formata como 000.000.000-00
-      # Parâmetros com valores fixos (não vêm do CSV)
-      - attribute: "source"
-        fixedValue: "csv-import"          # Valor fixo para todos os registros
-      - attribute: "version"
-        fixedValue: "1.0"
-```
-
-### Headers HTTP Customizados
-
-Você pode configurar headers HTTP customizados para cada endpoint. Isso permite:
-
-- **Autenticação Bearer Token**: `Authorization: "Bearer seu-token"`
-- **Autenticação API Key**: `X-API-Key: "sua-chave"`
-- **Headers customizados**: Qualquer header HTTP válido
-- **Content-Type**: Se não especificado, usa `application/json` por padrão
-
-**Exemplo:**
-
-```yaml
-endpoints:
-  - name: "producao"
-    endpointUrl: "https://api.exemplo.com/v1/eventos"
-    headers:
-      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      X-Tenant-ID: "empresa-123"
-      X-API-Version: "2.0"
-    method: "POST"
-```
-
-**Nota**: Headers de conteúdo como `Content-Type` são tratados automaticamente. O padrão é `application/json`.
-
-## Múltiplos Endpoints
-
-A aplicação trabalha com endpoints nomeados, permitindo rotear diferentes linhas do CSV para diferentes APIs.
-
-### Configuração de Endpoints
-
-```yaml
-# Endpoint padrão quando não especificado (opcional)
-defaultEndpoint: "webhook1"
-
-# Nome da coluna CSV que define qual endpoint usar (opcional)
-endpointColumnName: "Endpoint"
-
-# Lista de endpoints (obrigatório - pelo menos um)
-endpoints:
-  - name: "webhook1"
-    endpointUrl: "https://webhook.site/endpoint1"
-    headers:
-      Authorization: "Bearer token_endpoint1"
-    method: "POST"
-    requestTimeout: 30
-    retryAttempts: 3
-    retryDelaySeconds: 5
-    maxRequestsPerSecond: 10
-    mapping:
-      - attribute: "name"
-        csvColumn: "Name"
-        transform: "uppercase"
-      - attribute: "source"
-        fixedValue: "endpoint1"
-  
-  - name: "webhook2"
-    endpointUrl: "https://webhook.site/endpoint2"
-    headers:
-      Authorization: "Bearer token_endpoint2"
-      X-API-Key: "chave-api-endpoint2"
-    method: "POST"
-    requestTimeout: 30
-    mapping:
-      - attribute: "fullName"
-        csvColumn: "Name"
-      - attribute: "source"
-        fixedValue: "endpoint2"
-```
-
-### Formas de Selecionar o Endpoint
-
-#### 1. Via Argumento de Linha de Comando (Prioridade 1)
-
-Aplica o mesmo endpoint para todas as linhas:
-
+**Processar intervalo específico de linhas:**
 ```bash
-dotnet run -- --endpoint-name webhook1
+# Linhas 101 a 200
+dotnet run -- -s 101 -n 100 -v
 ```
 
-#### 2. Via Coluna CSV (Prioridade 2)
+📚 **Documentação completa**: [CLI-ARGUMENTS.md](docs/CLI-ARGUMENTS.md)
 
-Configure `endpointColumnName` no YAML e adicione uma coluna no CSV:
+---
+
+## 📝 Exemplos
+
+### Exemplo 1: Configuração Básica
 
 **config.yaml:**
-
-```yaml
-endpointColumnName: "Endpoint"
-```
-
-**input.csv:**
-
-```csv
-Name,Email,Endpoint
-John Doe,john@example.com,webhook1
-Jane Smith,jane@example.com,webhook2
-Bob Johnson,bob@example.com,webhook1
-```
-
-Cada linha será enviada para o endpoint especificado na coluna.
-
-#### 3. Endpoint Padrão (Prioridade 3)
-
-Configure `defaultEndpoint` no YAML:
-
-**config.yaml:**
-
-```yaml
-defaultEndpoint: "webhook1"
-```
-
-#### 4. Endpoint Único Automático (Prioridade 4)
-
-Se houver apenas um endpoint configurado e nenhum dos anteriores estiver definido, ele será usado automaticamente.
-
-### Exemplos Práticos
-
-**Processar todas as linhas usando webhook1:**
-
-```bash
-dotnet run -- --endpoint-name webhook1
-```
-
-**Processar com seleção dinâmica via CSV:**
-
-```bash
-dotnet run -- --config config.yaml
-# Cada linha define seu endpoint na coluna "Endpoint"
-```
-
-**Combinar: usar endpoint via argumento sobrescreve CSV:**
-
-```bash
-dotnet run -- --endpoint-name webhook2
-# Ignora a coluna "Endpoint" do CSV e usa webhook2 para tudo
-```
-
-**Usar endpoint padrão:**
-
-```bash
-dotnet run
-# Usa o endpoint definido em 'defaultEndpoint'
-```
-
-## Formato do Arquivo de Log
-
-Quando ocorrem erros, o arquivo de log contém:
-
-- **LineNumber**: Número da linha no arquivo CSV original
-- **Todas as colunas do CSV original**: Valores exatos da linha com erro
-- **HttpCode**: Código HTTP do erro (400 para validação, 500 para exceções)
-- **ErrorMessage**: Descrição do erro
-
-Exemplo:
-
-```csv
-LineNumber,Name,Email,Street,Birthdate,HttpCode,ErrorMessage
-5,John Doe,invalid-email,123 Main St,1990-05-15,400,"Valor 'invalid-email' inválido para coluna 'Email'"
-8,Jane Smith,jane@example.com,456 Oak Ave,2025-13-45,400,"Data '2025-13-45' inválida para formato 'YYYY-MM-DD' na coluna 'Birthdate'"
-```
-
-## Estrutura do Projeto
-
-```
-n2n/
-├── Program.cs           # Código principal (top-level statements)
-├── config.yaml          # Arquivo de configuração
-├── n2n.csproj      # Arquivo do projeto
-├── data/
-│   └── input.csv        # Arquivo CSV de entrada
-└── logs/
-    └── process.log      # Log de erros
-```
-
-## Performance
-
-A aplicação foi otimizada para processar grandes volumes de dados:
-
-1. **Processamento em lotes**: Evita carregar todo o arquivo na memória
-2. **Paralelismo**: Múltiplas chamadas HTTP simultâneas
-3. **Thread-safe**: Logging seguro com SemaphoreSlim
-4. **Async/await**: Operações I/O não-bloqueantes
-
-## Validações Suportadas
-
-- **type: "string"**: Qualquer texto
-- **type: "date"**: Valida formato de data
-    - format: "YYYY-MM-DD", "DD/MM/YYYY", etc.
-- **regex**: Validação com expressão regular customizada
-
-## Exemplos de Payload da API
-
-### Payload com dados do CSV e valores fixos
-
-Com a configuração acima, cada linha do CSV gera um payload como:
-
-```json
-{
-  "name": "John Doe",
-  "email": "john.doe@example.com",
-  "address": {
-    "street": "123 Main St"
-  },
-  "birthdate": "1990-05-15",
-  "source": "csv-import",
-  "version": "1.0"
-}
-```
-
-### Diferença entre csvColumn e fixedValue
-
-No mapeamento da API, você pode usar:
-
-- **csvColumn**: O valor vem da coluna correspondente no CSV (diferente para cada linha)
-  ```yaml
-  - attribute: "name"
-    csvColumn: "Name"  # Valor varia por linha
-  ```
-
-- **fixedValue**: O valor é fixo para todos os registros (mesmo valor em todas as linhas)
-  ```yaml
-  - attribute: "source"
-    fixedValue: "csv-import"  # Sempre "csv-import"
-  ```
-
-**Importante**: Cada mapping deve ter **OU** `csvColumn` **OU** `fixedValue`, mas não ambos.
-
-## Filtros de Dados
-
-O sistema permite filtrar as linhas do CSV antes do processamento, processando apenas registros que atendem a critérios
-específicos. Os filtros são configurados **diretamente em cada coluna**.
-
-### Exemplo de Configuração
-
 ```yaml
 file:
-    columns:
-        - column: "campaign"
-          type: "string"
-          filter:
-            operator: "Equals"
-            value: "promo2024"
-            caseInsensitive: true
-        
-        - column: "status"
-          type: "string"
-          filter:
-            operator: "NotEquals"
-            value: "cancelado"
-            caseInsensitive: true
-```
+  inputPath: "data/usuarios.csv"
+  batchLines: 100
+  csvDelimiter: ","
+  mapping:
+    - column: "Nome"
+      type: "string"
+    - column: "Email"
+      type: "string"
+      regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
 
-### Operadores Disponíveis
-
-- **Equals**: Valor exatamente igual
-- **NotEquals**: Valor diferente
-- **Contains**: Valor contém o texto especificado
-- **NotContains**: Valor não contém o texto especificado
-
-**Documentação completa**: Veja [data/README-FILTROS.md](data/README-FILTROS.md) para exemplos detalhados e casos de
-uso.
-
-## Transformações de Dados
-
-A aplicação oferece 20+ transformações que podem ser aplicadas aos dados antes do envio para a API.
-
-### Transformações Disponíveis
-
-**Texto:**
-
-- `uppercase` - Converte para MAIÚSCULAS
-- `lowercase` - Converte para minúsculas
-- `capitalize` - Primeira letra maiúscula
-- `title-case` - Primeira Letra De Cada Palavra
-- `trim` - Remove espaços nas extremidades
-
-**Limpeza:**
-
-- `remove-spaces` - Remove todos os espaços
-- `remove-accents` - Remove acentos
-- `remove-non-numeric` - Mantém apenas números
-- `remove-non-alphanumeric` - Remove caracteres especiais
-
-**Formatações Brasileiras:**
-
-- `format-cpf` - Formata como 000.000.000-00
-- `format-cnpj` - Formata como 00.000.000/0000-00
-- `format-phone-br` - Formata telefone brasileiro
-- `format-cep` - Formata como 00000-000
-
-**Outras:**
-
-- `slugify` - Converte para URL-friendly
-- `base64-encode` - Codifica em Base64
-- `url-encode` - Codifica para URL
-- `date-format:FORMATO` - Reformata datas
-
-### Exemplo de Uso
-
-```yaml
 endpoints:
-  - name: "api-usuarios"
+  - name: "api-producao"
+    endpointUrl: "https://api.example.com/users"
+    method: "POST"
+    headers:
+      Authorization: "Bearer seu-token-aqui"
     mapping:
-      - attribute: "nome"
+      - attribute: "name"
         csvColumn: "Nome"
         transform: "title-case"
       - attribute: "email"
         csvColumn: "Email"
         transform: "lowercase"
+```
+
+**Executar:**
+```bash
+dotnet run -- --verbose
+```
+
+### Exemplo 2: Múltiplos Endpoints com Roteamento
+
+**CSV com coluna de roteamento:**
+```csv
+Nome,Email,API_Destino
+João Silva,joao@empresa.com,crm
+Maria Santos,maria@empresa.com,erp
+Pedro Costa,pedro@empresa.com,crm
+```
+
+**config.yaml:**
+```yaml
+endpointColumnName: "API_Destino"
+
+endpoints:
+  - name: "crm"
+    endpointUrl: "https://api.crm.com/contacts"
+    headers:
+      Authorization: "Bearer token-crm"
+    mapping:
+      - attribute: "fullName"
+        csvColumn: "Nome"
+      - attribute: "email"
+        csvColumn: "Email"
+
+  - name: "erp"
+    endpointUrl: "https://api.erp.com/customers"
+    headers:
+      Authorization: "Bearer token-erp"
+    mapping:
+      - attribute: "customerName"
+        csvColumn: "Nome"
+      - attribute: "contactEmail"
+        csvColumn: "Email"
+```
+
+### Exemplo 3: Transformações e Filtros
+
+```yaml
+file:
+  mapping:
+    - column: "Status"
+      type: "string"
+      filter:
+        operator: "Equals"
+        value: "ativo"
+        caseInsensitive: true
+
+endpoints:
+  - name: "api"
+    endpointUrl: "https://api.example.com/customers"
+    mapping:
+      - attribute: "name"
+        csvColumn: "Nome"
+        transform: "uppercase"
       - attribute: "cpf"
         csvColumn: "CPF"
         transform: "format-cpf"
+      - attribute: "phone"
+        csvColumn: "Telefone"
+        transform: "format-phone-br"
+      - attribute: "source"
+        fixedValue: "csv-import-2024"
 ```
 
-**Documentação completa**: Veja [TRANSFORMACOES.md](TRANSFORMACOES.md) para todas as transformações e exemplos.
+### Exemplo 4: Webhook.site para Testes
 
-## Tratamento de Erros
+```bash
+# 1. Acesse https://webhook.site
+# 2. Copie sua URL única
+# 3. Execute:
+dotnet run -- \
+  --endpoint "https://webhook.site/SUA-URL-AQUI" \
+  --input data/teste.csv \
+  --max-lines 10 \
+  --verbose
 
-A aplicação registra erros em três situações:
+# 4. Acompanhe as requisições em tempo real no navegador
+```
 
-1. **Validação de dados**: Regex ou formato inválido (HTTP 400)
-2. **Erro na API**: Response não-sucesso (HTTP code real da API)
-3. **Exceções**: Timeout, conexão, etc. (HTTP 500)
+📚 **Mais exemplos**: [EXAMPLES.md](docs/EXAMPLES.md)
 
-## Dependências
+---
 
-- **YamlDotNet**: Leitura de arquivos YAML
-- **CsvHelper**: Processamento eficiente de CSV
-- **Spectre.Console**: Interface visual moderna e interativa
-- **Spectre.Console.Cli**: Parsing robusto de argumentos CLI
+## 🎨 Transformações de Dados
 
-## Licença
+O n2n oferece mais de 20 transformações que podem ser aplicadas aos dados:
 
-MIT
+### Transformações de Texto
+- `uppercase` - TEXTO EM MAIÚSCULAS
+- `lowercase` - texto em minúsculas
+- `capitalize` - Primeira letra maiúscula
+- `title-case` - Primeira Letra De Cada Palavra
+- `trim` - Remove espaços nas extremidades
+
+### Formatações Brasileiras
+- `format-cpf` - 000.000.000-00
+- `format-cnpj` - 00.000.000/0000-00
+- `format-phone-br` - (00) 00000-0000
+- `format-cep` - 00000-000
+
+### Limpeza de Dados
+- `remove-spaces` - Removetodososespaços
+- `remove-accents` - Remove acentuacao
+- `remove-non-numeric` - 1234567890
+- `remove-non-alphanumeric` - SomenteLetrasNumeros
+
+### Outras
+- `slugify` - converte-para-url-amigavel
+- `base64-encode` - Codifica em Base64
+- `url-encode` - Codifica%20para%20URL
+- `date-format:DD/MM/YYYY` - Reformata datas
+
+📚 **Lista completa**: [TRANSFORMATIONS.md](docs/TRANSFORMATIONS.md)
+
+---
+
+## 🔍 Filtros de Dados
+
+Processe apenas as linhas que atendem critérios específicos:
+
+```yaml
+file:
+  mapping:
+    - column: "Status"
+      type: "string"
+      filter:
+        operator: "Equals"
+        value: "ativo"
+        caseInsensitive: true
+    
+    - column: "Campanha"
+      type: "string"
+      filter:
+        operator: "Contains"
+        value: "promo2024"
+```
+
+### Operadores Disponíveis
+- `Equals` - Valor exatamente igual
+- `NotEquals` - Valor diferente
+- `Contains` - Contém o texto
+- `NotContains` - Não contém o texto
+
+📚 **Documentação completa**: [FILTERS.md](docs/FILTERS.md)
+
+---
+
+## 📊 Sistema de Checkpoints
+
+O n2n salva o progresso automaticamente, permitindo retomar processamentos:
+
+```bash
+# Nova execução (gera UUID automaticamente)
+dotnet run
+
+# Saída: Execution ID: 6869cdf3-5fb0-4178-966d-9a21015ffb4d
+
+# Continuar execução existente
+dotnet run -- --execution-id 6869cdf3-5fb0-4178-966d-9a21015ffb4d
+```
+
+Cada execução tem seus próprios arquivos:
+- 📝 `logs/process_{uuid}.log`
+- 💾 `checkpoints/checkpoint_{uuid}.json`
+
+---
+
+## 📖 Configuração Avançada
+
+### Estrutura Completa do config.yaml
+
+```yaml
+file:
+  inputPath: "data/input.csv"
+  batchLines: 100
+  startLine: 1
+  maxLines: 1000
+  logDirectory: "logs"
+  csvDelimiter: ","
+  checkpointDirectory: "checkpoints"
+  mapping:
+    - column: "Nome"
+      type: "string"
+    - column: "Email"
+      type: "string"
+      regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+endpointColumnName: "API_Destino"  # Opcional
+defaultEndpoint: "producao"         # Opcional
+
+endpoints:
+  - name: "producao"
+    endpointUrl: "https://api.example.com/v1/users"
+    method: "POST"
+    headers:
+      Authorization: "Bearer token-aqui"
+      X-API-Key: "sua-chave-api"
+    requestTimeout: 30
+    retryAttempts: 3
+    retryDelaySeconds: 5
+    maxRequestsPerSecond: 10
+    mapping:
+      - attribute: "name"
+        csvColumn: "Nome"
+        transform: "title-case"
+      - attribute: "email"
+        csvColumn: "Email"
+        transform: "lowercase"
+      - attribute: "address.street"
+        csvColumn: "Rua"
+      - attribute: "source"
+        fixedValue: "csv-import"
+```
+
+---
+
+## 🐛 Tratamento de Erros
+
+### Formato do Log de Erros
+
+```csv
+LineNumber,Nome,Email,Status,HttpCode,ErrorMessage
+5,João Silva,email-invalido,ativo,400,"Email inválido"
+8,Maria,maria@email.com,cancelado,500,"Timeout na requisição"
+```
+
+### Tipos de Erro
+
+- **400** - Validação de dados (regex, formato)
+- **4xx/5xx** - Erros da API (código real do servidor)
+- **500** - Exceções (timeout, conexão, etc.)
+
+---
+
+## 🏗️ Estrutura do Projeto
+
+```
+n2n/
+├── src/
+│   ├── Commands/           # Comandos CLI
+│   ├── Services/           # Serviços principais
+│   ├── Models/             # Modelos de dados
+│   ├── Infrastructure/     # Infraestrutura
+│   └── Utils/              # Utilitários
+├── docs/                   # Documentação
+├── data/                   # Dados de exemplo
+├── logs/                   # Logs de execução
+├── checkpoints/            # Checkpoints salvos
+└── config.yaml             # Configuração padrão
+```
+
+---
+
+## 🚀 Performance
+
+Otimizações implementadas:
+
+- ✅ **Processamento em lotes** - Evita carregar todo CSV na memória
+- ✅ **Paralelismo** - Múltiplas requisições HTTP simultâneas
+- ✅ **Thread-safe** - Logging seguro com SemaphoreSlim
+- ✅ **Async/await** - Operações I/O não-bloqueantes
+- ✅ **Rate limiting** - Controle de taxa de requisições
+
+---
+
+## 📚 Documentação Adicional
+
+- 📖 [Quick Start](docs/QUICKSTART.md) - Guia de início rápido em 5 minutos
+- ⚙️ [Argumentos CLI](docs/CLI-ARGUMENTS.md) - Referência completa de comandos
+- 💡 [Exemplos](docs/EXAMPLES.md) - Casos de uso práticos
+- 🎨 [Transformações](docs/TRANSFORMATIONS.md) - Lista completa de transformações
+- 🔍 [Filtros](docs/FILTERS.md) - Guia de filtros de dados
+- 📝 [Changelog](docs/CHANGELOG.md) - Histórico de versões
+
+---
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+1. 🐛 Reportar bugs
+2. 💡 Sugerir novas funcionalidades
+3. 🔧 Enviar pull requests
+4. 📖 Melhorar a documentação
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 🛠️ Tecnologias
+
+- **[.NET 10](https://dotnet.microsoft.com/)** - Framework principal
+- **[Spectre.Console](https://spectreconsole.net/)** - Interface visual moderna
+- **[CsvHelper](https://joshclose.github.io/CsvHelper/)** - Processamento de CSV
+- **[YamlDotNet](https://github.com/aaubry/YamlDotNet)** - Parsing de YAML
+
+---
+
+<div align="center">
+  <p>Desenvolvido com ❤️ por <a href="https://github.com/felipeseho">Felipe Seho</a></p>
+  <p>
+    <a href="#-sobre-o-projeto">Voltar ao topo ⬆️</a>
+  </p>
+</div>
 

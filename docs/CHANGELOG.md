@@ -5,6 +5,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.8.2] - 2025-11-22
+
+### Modificado
+
+- **Documentação Profissional**: Reestruturação completa da documentação seguindo padrões de projetos open source
+  - README.md reformulado com visual moderno e organização profissional
+  - Header centralizado com badges informativos
+  - Estrutura clara: Sobre, Interface, Funcionalidades, Requisitos, Instalação, Quick Start, Comandos, Exemplos
+  - Seções organizadas com emojis estratégicos para navegação visual
+
+- **Documentação Interna Padronizada**: Todos os arquivos da pasta `docs/` atualizados
+  - Arquivos renomeados para inglês (QUICKSTART.md, CLI-ARGUMENTS.md, EXAMPLES.md, TRANSFORMATIONS.md, FILTERS.md)
+  - Conteúdo mantido em português
+  - Padrão visual consistente em todos os documentos
+  - Headers centralizados, seções bem definidas, tabelas de referência
+  - Links de navegação interna e externa
+  - Footer profissional com "Voltar ao topo"
+
+- **Melhorias na Organização**:
+  - Removidos arquivos antigos (ARGUMENTOS.md, EXEMPLOS.md, TRANSFORMACOES.md, README-FILTROS.md)
+  - Todas as referências atualizadas no README principal
+  - Documentação mais acessível e fácil de navegar
+
 ## [0.8.1] - 2025-11-22
 
 ### Modificado
