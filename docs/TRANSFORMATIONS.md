@@ -17,6 +17,33 @@ As **transformações de dados** permitem modificar valores das colunas CSV ante
 - ✅ **Padronizar textos** (maiúsculas, minúsculas, title case)
 - ✅ **Criar slugs** para URLs amigáveis
 
+### 🆕 Novidade: Múltiplas Transformações em Sequência
+
+Agora você pode aplicar **múltiplas transformações em sequência**, onde o resultado de uma transformação é passado para a próxima. Isso permite criar pipelines de transformação complexos:
+
+**Dois formatos disponíveis:**
+
+```yaml
+# Formato antigo - transformação única (ainda funciona)
+- attribute: "name"
+  csvColumn: "Name"
+  transform: "uppercase"
+
+# Formato novo - múltiplas transformações em sequência
+- attribute: "name"
+  csvColumn: "Name"
+  transforms:  # ← Note o "s" no final
+    - "trim"           # 1º Remove espaços nas extremidades
+    - "title-case"     # 2º Converte para Title Case
+    - "remove-accents" # 3º Remove acentos
+```
+
+**Exemplo de pipeline:**
+- Entrada: `"  JOÃO da SILVA  "`
+- Após `trim`: `"JOÃO da SILVA"`
+- Após `title-case`: `"João Da Silva"`
+- Após `remove-accents`: `"Joao Da Silva"`
+
 ---
 
 ## 🎯 Como Usar
@@ -477,9 +504,212 @@ João José da Silva
 
 ---
 
-## 🔗 Encadeamento de Transformações
+## 🔗 Encadeamento de Transformações (NOVO!)
 
-**Nota:** Atualmente, apenas uma transformação pode ser aplicada por campo. Se você precisa de múltiplas transformações, use o mesmo campo CSV para diferentes atributos, como mostrado no Exemplo 4 acima.
+Agora você pode aplicar **múltiplas transformações em sequência** no mesmo campo! O resultado de uma transformação é passado como entrada para a próxima.
+
+### Exemplo 1: Normalização de Nome
+
+**Objetivo:** Limpar e padronizar nomes de pessoas.
+
+```yaml
+mapping:
+  - attribute: "name"
+    csvColumn: "Nome"
+    transforms:
+      - "trim"           # 1. Remove espaços nas extremidades
+      - "title-case"     # 2. Converte para Title Case
+      - "remove-accents" # 3. Remove acentos
+```
+
+**Transformação passo a passo:**
+
+```
+Entrada:       "  joão SILVA dos santos  "
+↓ trim:        "joão SILVA dos santos"
+↓ title-case:  "João Silva Dos Santos"
+↓ remove-accents: "Joao Silva Dos Santos"
+```
+
+### Exemplo 2: Normalização de Email
+
+**Objetivo:** Garantir que emails estejam sempre em minúsculas e sem espaços.
+
+```yaml
+mapping:
+  - attribute: "email"
+    csvColumn: "Email"
+    transforms:
+      - "trim"      # 1. Remove espaços nas extremidades
+      - "lowercase" # 2. Converte para minúsculas
+```
+
+**Transformação passo a passo:**
+
+```
+Entrada:    "  JOAO.SILVA@EXAMPLE.COM  "
+↓ trim:     "JOAO.SILVA@EXAMPLE.COM"
+↓ lowercase: "joao.silva@example.com"
+```
+
+### Exemplo 3: Limpeza e Formatação de Telefone
+
+**Objetivo:** Limpar e formatar telefones brasileiros.
+
+```yaml
+mapping:
+  - attribute: "phone"
+    csvColumn: "Telefone"
+    transforms:
+      - "trim"               # 1. Remove espaços nas extremidades
+      - "remove-all-spaces"  # 2. Remove todos os espaços
+      - "remove-non-numeric" # 3. Remove caracteres não numéricos
+      - "format-phone-br"    # 4. Formata como telefone brasileiro
+```
+
+**Transformação passo a passo:**
+
+```
+Entrada:             "  (11) 98765-4321  "
+↓ trim:              "(11) 98765-4321"
+↓ remove-all-spaces: "(11)98765-4321"
+↓ remove-non-numeric: "11987654321"
+↓ format-phone-br:    "(11) 98765-4321"
+```
+
+### Exemplo 4: Criação de Slug para URL
+
+**Objetivo:** Criar URLs amigáveis a partir de títulos.
+
+```yaml
+mapping:
+  - attribute: "slug"
+    csvColumn: "Titulo"
+    transforms:
+      - "lowercase"      # 1. Converte para minúsculas
+      - "remove-accents" # 2. Remove acentos
+      - "slugify"        # 3. Cria slug (remove caracteres especiais, espaços viram hífen)
+```
+
+**Transformação passo a passo:**
+
+```
+Entrada:          "Promoção de Verão 2024!"
+↓ lowercase:      "promoção de verão 2024!"
+↓ remove-accents: "promocao de verao 2024!"
+↓ slugify:        "promocao-de-verao-2024"
+```
+
+### Exemplo 5: Limpeza e Formatação de CPF
+
+**Objetivo:** Garantir que CPFs estejam limpos e formatados.
+
+```yaml
+mapping:
+  - attribute: "document"
+    csvColumn: "CPF"
+    transforms:
+      - "trim"               # 1. Remove espaços nas extremidades
+      - "remove-non-numeric" # 2. Remove pontos, hífens, etc.
+      - "format-cpf"         # 3. Formata como CPF
+```
+
+**Transformação passo a passo:**
+
+```
+Entrada:             "  123.456.789-00  "
+↓ trim:              "123.456.789-00"
+↓ remove-non-numeric: "12345678900"
+↓ format-cpf:         "123.456.789-00"
+```
+
+### Exemplo 6: Transformação Complexa com Múltiplos Campos
+
+**Configuração completa com vários campos usando múltiplas transformações:**
+
+```yaml
+endpoints:
+  - name: "api-users"
+    endpointUrl: "https://api.exemplo.com/users"
+    mapping:
+      # Nome limpo e padronizado
+      - attribute: "name"
+        csvColumn: "Nome"
+        transforms:
+          - "trim"
+          - "title-case"
+          - "remove-accents"
+      
+      # Email normalizado
+      - attribute: "email"
+        csvColumn: "Email"
+        transforms:
+          - "trim"
+          - "lowercase"
+      
+      # Telefone formatado
+      - attribute: "phone"
+        csvColumn: "Telefone"
+        transforms:
+          - "remove-all-spaces"
+          - "remove-non-numeric"
+          - "format-phone-br"
+      
+      # CPF limpo e formatado
+      - attribute: "document"
+        csvColumn: "CPF"
+        transforms:
+          - "trim"
+          - "remove-non-numeric"
+          - "format-cpf"
+      
+      # Endereço em maiúsculas
+      - attribute: "address"
+        csvColumn: "Endereco"
+        transforms:
+          - "trim"
+          - "uppercase"
+      
+      # Slug para identificador único
+      - attribute: "slug"
+        csvColumn: "Nome"
+        transforms:
+          - "lowercase"
+          - "remove-accents"
+          - "slugify"
+```
+
+**CSV de entrada:**
+
+```csv
+Nome,Email,Telefone,CPF,Endereco
+  JOÃO da SILVA  ,  JOAO@EMAIL.COM  ,(11) 98765-4321,123.456.789-00,  rua exemplo 123  
+```
+
+**Payload JSON gerado:**
+
+```json
+{
+  "name": "Joao Da Silva",
+  "email": "joao@email.com",
+  "phone": "(11) 98765-4321",
+  "document": "123.456.789-00",
+  "address": "RUA EXEMPLO 123",
+  "slug": "joao-da-silva"
+}
+```
+
+### Exemplo 7: Compatibilidade com Formato Antigo
+
+**Você ainda pode usar transformação única (formato antigo):**
+
+```yaml
+# Isto ainda funciona normalmente
+mapping:
+  - attribute: "name"
+    csvColumn: "Nome"
+    transform: "uppercase"  # ← Transformação única
+```
 
 ---
 

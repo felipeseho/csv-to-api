@@ -15,6 +15,36 @@ Os **filtros de dados** permitem processar apenas linhas do CSV que atendem a cr
 - ✅ **Selecionar dados de um período específico**
 - ✅ **Reduzir custos** processando menos dados
 
+### 🆕 Novidade: Múltiplos Filtros na Mesma Coluna
+
+Agora você pode aplicar **múltiplos filtros na mesma coluna**, permitindo lógicas mais complexas como:
+
+- Excluir vários valores diferentes (ex: não processar "cancelado" NEM "inativo")
+- Combinar condições positivas e negativas
+- Filtros mais refinados sem precisar de múltiplas colunas
+
+**Dois formatos disponíveis:**
+
+```yaml
+# Formato antigo - filtro único (ainda funciona)
+- column: "Status"
+  type: "string"
+  filter:
+    operator: "Equals"
+    value: "ativo"
+
+# Formato novo - múltiplos filtros na mesma coluna
+- column: "Status"
+  type: "string"
+  filters:  # ← Note o "s" no final
+    - operator: "NotEquals"
+      value: "cancelado"
+    - operator: "NotEquals"
+      value: "inativo"
+    - operator: "NotEquals"
+      value: "suspenso"
+```
+
 ---
 
 ## 🎯 Como Funciona
@@ -349,6 +379,115 @@ Carlos Souza,promo2024,premium,ativo
 - ❌ **Pedro Costa**: promo2024 ✓ + basic ✗ + ativo ✓ → **Ignorado**
 - ❌ **Ana Lima**: natal2024 ✗ + premium ✓ + ativo ✓ → **Ignorado**
 - ✅ **Carlos Souza**: promo2024 ✓ + premium ✓ + ativo ✓ → **Processado**
+
+**Total processado:** 2 linhas (João Silva e Carlos Souza)
+
+---
+
+### Exemplo 6: Múltiplos Filtros na Mesma Coluna (NOVO!)
+
+**Objetivo:** Processar apenas registros que NÃO sejam "cancelado", "inativo" ou "suspenso".
+
+```yaml
+file:
+  mapping:
+    - column: "Status"
+      type: "string"
+      filters:  # ← Múltiplos filtros na mesma coluna
+        - operator: "NotEquals"
+          value: "cancelado"
+          caseInsensitive: true
+        - operator: "NotEquals"
+          value: "inativo"
+          caseInsensitive: true
+        - operator: "NotEquals"
+          value: "suspenso"
+          caseInsensitive: true
+
+endpoints:
+  - name: "api"
+    endpointUrl: "https://api.exemplo.com/users"
+    mapping:
+      - attribute: "nome"
+        csvColumn: "Nome"
+      - attribute: "status"
+        csvColumn: "Status"
+```
+
+**CSV:**
+
+```csv
+Nome,Status
+João Silva,ativo
+Maria Santos,cancelado
+Pedro Costa,pendente
+Ana Lima,INATIVO
+Carlos Souza,ativo
+Rita Oliveira,suspenso
+Paulo Mendes,aprovado
+```
+
+**Resultado:**
+- ✅ João Silva → **Processado** (ativo - não é cancelado, inativo ou suspenso)
+- ❌ Maria Santos → **Ignorado** (cancelado)
+- ✅ Pedro Costa → **Processado** (pendente - não é cancelado, inativo ou suspenso)
+- ❌ Ana Lima → **Ignorado** (INATIVO)
+- ✅ Carlos Souza → **Processado** (ativo)
+- ❌ Rita Oliveira → **Ignorado** (suspenso)
+- ✅ Paulo Mendes → **Processado** (aprovado)
+
+**Total processado:** 4 linhas
+
+---
+
+### Exemplo 7: Combinando Múltiplos Filtros na Mesma Coluna com Filtros em Outras Colunas
+
+**Objetivo:** Processar registros da campanha "promo2024" que NÃO sejam "cancelado" nem "inativo".
+
+```yaml
+file:
+  mapping:
+    # Filtros múltiplos na coluna Status
+    - column: "Status"
+      type: "string"
+      filters:
+        - operator: "NotEquals"
+          value: "cancelado"
+        - operator: "NotEquals"
+          value: "inativo"
+    
+    # Filtro único em outra coluna
+    - column: "Campanha"
+      type: "string"
+      filter:
+        operator: "Equals"
+        value: "promo2024"
+
+endpoints:
+  - name: "marketing"
+    endpointUrl: "https://api.marketing.com/contacts"
+    mapping:
+      - attribute: "nome"
+        csvColumn: "Nome"
+```
+
+**CSV:**
+
+```csv
+Nome,Campanha,Status
+João Silva,promo2024,ativo
+Maria Santos,promo2024,cancelado
+Pedro Costa,natal2024,ativo
+Ana Lima,promo2024,inativo
+Carlos Souza,promo2024,pendente
+```
+
+**Análise:**
+- ✅ **João Silva**: Status ≠ cancelado ✓, Status ≠ inativo ✓, Campanha = promo2024 ✓ → **Processado**
+- ❌ **Maria Santos**: Status = cancelado ✗ → **Ignorado**
+- ❌ **Pedro Costa**: Campanha ≠ promo2024 ✗ → **Ignorado**
+- ❌ **Ana Lima**: Status = inativo ✗ → **Ignorado**
+- ✅ **Carlos Souza**: Status ≠ cancelado ✓, Status ≠ inativo ✓, Campanha = promo2024 ✓ → **Processado**
 
 **Total processado:** 2 linhas (João Silva e Carlos Souza)
 

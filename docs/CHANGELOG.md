@@ -5,6 +5,161 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## 0.10.0 - 2025-11-25
+
+### ✨ Novos Recursos
+
+#### 🔍 Múltiplos Filtros na Mesma Coluna
+
+Agora é possível aplicar múltiplos filtros na mesma coluna do CSV, permitindo lógicas de filtragem mais complexas e refinadas.
+
+**Formato antigo (ainda funciona):**
+```yaml
+- column: "Status"
+  type: "string"
+  filter:
+    operator: "Equals"
+    value: "ativo"
+```
+
+**Formato novo (múltiplos filtros):**
+```yaml
+- column: "Status"
+  type: "string"
+  filters:  # ← Note o "s" no final
+    - operator: "NotEquals"
+      value: "cancelado"
+    - operator: "NotEquals"
+      value: "inativo"
+    - operator: "NotEquals"
+      value: "suspenso"
+```
+
+**Benefícios:**
+- ✅ Filtros mais complexos sem precisar de múltiplas colunas
+- ✅ Lógica AND entre múltiplos filtros da mesma coluna
+- ✅ Retrocompatível com configurações antigas
+- ✅ Reduz necessidade de pré-processamento de dados
+
+**Exemplo de uso:**
+```yaml
+file:
+  columns:
+    # Processar apenas registros que NÃO sejam "cancelado", "inativo" ou "suspenso"
+    - column: "Status"
+      type: "string"
+      filters:
+        - operator: "NotEquals"
+          value: "cancelado"
+          caseInsensitive: true
+        - operator: "NotEquals"
+          value: "inativo"
+          caseInsensitive: true
+        - operator: "NotEquals"
+          value: "suspenso"
+          caseInsensitive: true
+```
+
+Para mais detalhes, veja a [documentação de filtros](FILTERS.md#exemplo-6-múltiplos-filtros-na-mesma-coluna-novo).
+
+---
+
+#### 🎨 Múltiplas Transformações em Sequência
+
+Agora é possível aplicar múltiplas transformações em sequência no mapeamento de endpoints, onde o resultado de uma transformação é passado como entrada para a próxima.
+
+**Formato antigo (ainda funciona):**
+```yaml
+- attribute: "name"
+  csvColumn: "Nome"
+  transform: "uppercase"
+```
+
+**Formato novo (múltiplas transformações):**
+```yaml
+- attribute: "name"
+  csvColumn: "Nome"
+  transforms:  # ← Note o "s" no final
+    - "trim"           # 1º Remove espaços nas extremidades
+    - "title-case"     # 2º Converte para Title Case
+    - "remove-accents" # 3º Remove acentos
+```
+
+**Benefícios:**
+- ✅ Pipelines de transformação complexos
+- ✅ Maior controle sobre normalização de dados
+- ✅ Reduz necessidade de transformações customizadas
+- ✅ Retrocompatível com configurações antigas
+- ✅ Mais de 20 transformações podem ser combinadas
+
+**Exemplo de pipeline:**
+```
+Entrada: "  JOÃO da SILVA  "
+↓ trim: "JOÃO da SILVA"
+↓ title-case: "João Da Silva"
+↓ remove-accents: "Joao Da Silva"
+```
+
+**Exemplo de uso completo:**
+```yaml
+endpoints:
+  - name: "api-users"
+    mapping:
+      # Email normalizado
+      - attribute: "email"
+        csvColumn: "Email"
+        transforms:
+          - "trim"
+          - "lowercase"
+      
+      # Telefone limpo e formatado
+      - attribute: "phone"
+        csvColumn: "Telefone"
+        transforms:
+          - "remove-all-spaces"
+          - "remove-non-numeric"
+          - "format-phone-br"
+      
+      # CPF limpo e formatado
+      - attribute: "document"
+        csvColumn: "CPF"
+        transforms:
+          - "trim"
+          - "remove-non-numeric"
+          - "format-cpf"
+      
+      # Slug para URL
+      - attribute: "slug"
+        csvColumn: "Nome"
+        transforms:
+          - "lowercase"
+          - "remove-accents"
+          - "slugify"
+```
+
+Para mais detalhes, veja a [documentação de transformações](TRANSFORMATIONS.md#-encadeamento-de-transformações-novo).
+
+---
+
+### 🔄 Retrocompatibilidade
+
+Todas as alterações são **100% retrocompatíveis**:
+
+- ✅ Configurações antigas com `filter` (singular) continuam funcionando
+- ✅ Configurações antigas com `transform` (singular) continuam funcionando
+- ✅ Não é necessário alterar configurações existentes
+- ✅ É possível misturar formatos antigo e novo no mesmo arquivo
+
+---
+
+### 📚 Documentação Atualizada
+
+- ✅ [FILTERS.md](FILTERS.md) - Exemplos de múltiplos filtros
+- ✅ [TRANSFORMATIONS.md](TRANSFORMATIONS.md) - Exemplos de múltiplas transformações
+- ✅ [config-example-multiple-filters-transforms.yaml](../src/config-example-multiple-filters-transforms.yaml) - Arquivo de exemplo completo
+
+---
+
 ## [0.9.1] - 2025-11-24
 
 ### Adicionado

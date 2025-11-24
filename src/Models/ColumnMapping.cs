@@ -11,7 +11,12 @@ public class ColumnMapping
     public string? Format { get; set; }
 
     /// <summary>
-    ///     Filtro opcional a ser aplicado nesta coluna
+    ///     Filtro opcional a ser aplicado nesta coluna (para compatibilidade com configurações antigas)
     /// </summary>
     public ColumnFilter? Filter { get; set; }
+
+    /// <summary>
+    ///     Lista de filtros a serem aplicados nesta coluna (modo recomendado para múltiplos filtros)
+    /// </summary>
+    public List<ColumnFilter>? Filters { get; set; }
 }

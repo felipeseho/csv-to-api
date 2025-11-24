@@ -12,16 +12,36 @@ public class FilterService
     public FilterService(List<ColumnMapping> columns)
     {
         // Extrair filtros das colunas que possuem configuração de filtro
-        _filters = columns
-            .Where(c => c.Filter != null)
-            .Select(c => new ColumnFilter
+        _filters = new List<ColumnFilter>();
+        
+        foreach (var column in columns)
+        {
+            // Suporte a múltiplos filtros (novo formato)
+            if (column.Filters != null && column.Filters.Count > 0)
             {
-                Column = c.Column,
-                Operator = c.Filter!.Operator,
-                Value = c.Filter.Value,
-                CaseInsensitive = c.Filter.CaseInsensitive
-            })
-            .ToList();
+                foreach (var filter in column.Filters)
+                {
+                    _filters.Add(new ColumnFilter
+                    {
+                        Column = column.Column,
+                        Operator = filter.Operator,
+                        Value = filter.Value,
+                        CaseInsensitive = filter.CaseInsensitive
+                    });
+                }
+            }
+            // Suporte a filtro único (formato antigo - retrocompatibilidade)
+            else if (column.Filter != null)
+            {
+                _filters.Add(new ColumnFilter
+                {
+                    Column = column.Column,
+                    Operator = column.Filter.Operator,
+                    Value = column.Filter.Value,
+                    CaseInsensitive = column.Filter.CaseInsensitive
+                });
+            }
+        }
     }
 
     /// <summary>

@@ -10,14 +10,36 @@ namespace n2n.Utils;
 public static class DataTransformer
 {
     /// <summary>
+    ///     Aplica múltiplas transformações ao valor em sequência
+    /// </summary>
+    /// <param name="value">Valor original</param>
+    /// <param name="transforms">Lista de transformações a aplicar</param>
+    /// <returns>Valor transformado após aplicar todas as transformações</returns>
+    public static string? ApplyTransformations(string? value, List<string>? transforms)
+    {
+        if (value == null || transforms == null || transforms.Count == 0) 
+            return value;
+
+        var result = value;
+        foreach (var transform in transforms)
+        {
+            result = ApplyTransformation(result, transform);
+            // Se alguma transformação retornar null, para a sequência
+            if (result == null) break;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     ///     Aplica transformação ao valor conforme o tipo especificado
     /// </summary>
     /// <param name="value">Valor original</param>
     /// <param name="transform">Tipo de transformação a aplicar</param>
     /// <returns>Valor transformado</returns>
-    public static string? ApplyTransformation(string value, string? transform)
+    public static string? ApplyTransformation(string? value, string? transform)
     {
-        if (string.IsNullOrWhiteSpace(transform)) return value;
+        if (string.IsNullOrWhiteSpace(transform) || value == null) return value;
 
         return transform.ToLower() switch
         {

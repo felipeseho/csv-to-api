@@ -16,17 +16,39 @@ public static class PayloadBuilder
 
         foreach (var mapping in mappings)
         {
-            string transformedValue;
+            string? transformedValue;
 
             // Se há um valor fixo, usá-lo diretamente
             if (!string.IsNullOrEmpty(mapping.FixedValue))
+            {
                 transformedValue = mapping.FixedValue;
+            }
             // Caso contrário, buscar valor da coluna CSV
             else if (!string.IsNullOrEmpty(mapping.CsvColumn) &&
                      record.Data.TryGetValue(mapping.CsvColumn, out var value))
-                // Aplicar transformação se especificada
-                transformedValue = DataTransformer.ApplyTransformation(value, mapping.Transform);
+            {
+                // Aplicar múltiplas transformações se especificadas (novo formato)
+                if (mapping.Transforms != null && mapping.Transforms.Count > 0)
+                {
+                    transformedValue = DataTransformer.ApplyTransformations(value, mapping.Transforms);
+                }
+                // Aplicar transformação única se especificada (formato antigo - retrocompatibilidade)
+                else if (!string.IsNullOrEmpty(mapping.Transform))
+                {
+                    transformedValue = DataTransformer.ApplyTransformation(value, mapping.Transform);
+                }
+                else
+                {
+                    transformedValue = value;
+                }
+            }
             else
+            {
+                continue;
+            }
+
+            // Se o valor transformado for null, pular este mapeamento
+            if (transformedValue == null)
                 continue;
 
             // Suportar atributos aninhados (ex: "address.street")
