@@ -42,7 +42,21 @@ public abstract class DataSourceBase : IDataSource
         {
             try
             {
-                return (T)Convert.ChangeType(value, typeof(T));
+                if (value is null)
+                    return defaultValue;
+
+                var targetType = typeof(T);
+                var underlyingType = Nullable.GetUnderlyingType(targetType);
+                
+                if (underlyingType != null)
+                {
+                    if (value is string strValue && string.IsNullOrWhiteSpace(strValue))
+                        return defaultValue;
+                    
+                    return (T)Convert.ChangeType(value, underlyingType);
+                }
+                
+                return (T)Convert.ChangeType(value, targetType);
             }
             catch
             {

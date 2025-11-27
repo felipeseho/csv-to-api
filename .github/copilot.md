@@ -31,44 +31,44 @@ A solução deve ser dividida em camadas para garantir desacoplamento (Ports and
 *Define como os Plugins conversam com a Engine. Sem dependências de infraestrutura pesada.*
 
 - **Interfaces:**
-  - `IDataPublisher` (Publicar no barramento).
-  - `IDataSubscriber` (Assinar canais).
-  - `ISourceAdapter` (Contrato de leitura).
-  - `IDestinationAdapter` (Contrato de escrita).
-  - `IPacketValidator` e `IPacketTransformer`.
+    - `IDataPublisher` (Publicar no barramento).
+    - `IDataSubscriber` (Assinar canais).
+    - `ISourceAdapter` (Contrato de leitura).
+    - `IDestinationAdapter` (Contrato de escrita).
+    - `IPacketValidator` e `IPacketTransformer`.
 - **Modelo de Dados:**
-  - `MessageEnvelope`: Record contendo:
-    - `JsonNode Payload` (O dado em si).
-    - `Guid CorrelationId`
-    - `DateTime Timestamp`
-    - `string SourceType`
+    - `MessageEnvelope`: Record contendo:
+        - `JsonNode Payload` (O dado em si).
+        - `Guid CorrelationId`
+        - `DateTime Timestamp`
+        - `string SourceType`
 - **Interfaces de Plugin:**
-  - `ISourcePlugin`: `IAsyncEnumerable<JsonNode> ExtractAsync(JsonNode pluginConfig, CancellationToken ct);`
-  - `IDestinationPlugin`: `Task LoadAsync(JsonNode data, JsonNode pluginConfig, CancellationToken ct);`
-  - `IMiddlewarePlugin`: `JsonNode Process(JsonNode data, JsonNode pluginConfig);`
+    - `ISourcePlugin`: `IAsyncEnumerable<JsonNode> ExtractAsync(JsonNode pluginConfig, CancellationToken ct);`
+    - `IDestinationPlugin`: `Task LoadAsync(JsonNode data, JsonNode pluginConfig, CancellationToken ct);`
+    - `IMiddlewarePlugin`: `JsonNode Process(JsonNode data, JsonNode pluginConfig);`
 
 ### B. Camada Infrastructure (A Engine)
 *Implementação dos mecanismos da plataforma.*
 
 - **Plugin System:**
-  - `PluginLoader`: Usa `AssemblyLoadContext` para carregar DLLs da pasta `./plugins` e instanciar tipos via Reflection.
+    - `PluginLoader`: Usa `AssemblyLoadContext` para carregar DLLs da pasta `./plugins` e instanciar tipos via Reflection.
 - **Bus:**
-  - `InMemoryBroadcastBus`: Implementa `IPublisher/ISubscriber`. Gerencia um `ConcurrentDictionary<string, Channel<MessageEnvelope>>`.
+    - `InMemoryBroadcastBus`: Implementa `IPublisher/ISubscriber`. Gerencia um `ConcurrentDictionary<string, Channel<MessageEnvelope>>`.
 - **Transformation Engine:**
-  - `LiquidTransformer`: Serviço que recebe `(JsonNode source, string liquidTemplate)` e retorna um novo `JsonNode` usando a lib **Fluid**.
+    - `LiquidTransformer`: Serviço que recebe `(JsonNode source, string liquidTemplate)` e retorna um novo `JsonNode` usando a lib **Fluid**.
 - **Observabilidade (Telemetry Store):**
-  - `AppDiagnostics`: Singleton com `ActivitySource` e `Meter`.
-  - `TelemetryStore`: Singleton mediador (Store) que guarda `ConcurrentQueue<string> Logs` e `ConcurrentDictionary<string, string> Metrics` para a UI.
-  - **Custom Exporters:** `SpectreLogExporter` e `SpectreMetricExporter` que alimentam o Store.
+    - `AppDiagnostics`: Singleton com `ActivitySource` e `Meter`.
+    - `TelemetryStore`: Singleton mediador (Store) que guarda `ConcurrentQueue<string> Logs` e `ConcurrentDictionary<string, string> Metrics` para a UI.
+    - **Custom Exporters:** `SpectreLogExporter` e `SpectreMetricExporter` que alimentam o Store.
 
 ### C. Camada WorkerService (Orquestração & UI)
 *Entry point e Composição.*
 
 - **ConfigLoader:** Deserializa o YAML para objetos de configuração (`RootConfig`, `PipelineConfig`).
 - **DynamicWorkerFactory:**
-  - O "Cérebro" da inicialização. Lê a config e cria instâncias de `BackgroundService` para cada Source e Destination definidos, conectando-os ao Bus.
+    - O "Cérebro" da inicialização. Lê a config e cria instâncias de `BackgroundService` para cada Source e Destination definidos, conectando-os ao Bus.
 - **DashboardWorker:**
-  - Serviço dedicado à UI. Injeta `TelemetryStore` e usa `AnsiConsole.Live` para desenhar o estado do sistema.
+    - Serviço dedicado à UI. Injeta `TelemetryStore` e usa `AnsiConsole.Live` para desenhar o estado do sistema.
 
 ## 4. Definição de Configuração (YAML Schema)
 
@@ -127,8 +127,8 @@ Implementar exportadores do OpenTelemetry que alimentam o `TelemetryStore`:
 
 - **Logging:** É mandatório usar `logging.ClearProviders()` para remover o Console Logger padrão (que quebraria a UI do Spectre).
 - **OTel Setup:**
-  - Adicionar `SpectreLogExporter` usando `SimpleLogRecordExportProcessor` (tempo real).
-  - Adicionar `SpectreMetricExporter` usando `PeriodicExportingMetricReader` (intervalo curto, ex: 1000ms).
+    - Adicionar `SpectreLogExporter` usando `SimpleLogRecordExportProcessor` (tempo real).
+    - Adicionar `SpectreMetricExporter` usando `PeriodicExportingMetricReader` (intervalo curto, ex: 1000ms).
 
 ## 7. Boas Práticas de Código
 - **Async/Await:** Sempre repassar `CancellationToken`.

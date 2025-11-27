@@ -32,6 +32,7 @@ public class PipelineDashboardService
     public void SetDestination(IDataDestination destination) => _viewModel.Destination = destination;
     public void SetEstimatedTotal(long? total) => _viewModel.EstimatedTotal = total;
     public void SetExecutionId(string executionId) => _viewModel.ExecutionId = executionId;
+    public void IncrementFilteredRecords() => _viewModel.FilteredRecordsCount++;
 
     public void AddLogMessage(string message, string level = "INFO")
     {
@@ -307,9 +308,9 @@ public class PipelineDashboardService
 
         configTable.AddRow("[cyan1]Tipo:[/]", $"[yellow]{_viewModel.Configuration.Source.Type}[/]");
 
-        foreach (var setting in _viewModel.Configuration.Source.Settings.Take(3))
+        foreach (var setting in _viewModel.Configuration.Source.Settings)
         {
-            var value = setting.Value?.ToString() ?? "null";
+            var value = FormatSettingValue(setting.Value);
             configTable.AddRow($"  [grey]{setting.Key}:[/]", $"[white]{value}[/]");
         }
 
@@ -332,7 +333,7 @@ public class PipelineDashboardService
         if (sourceMetrics != null)
         {
             perfTable.AddRow("[cyan1]Registros Lidos:[/]", $"[yellow]{sourceMetrics.TotalRecordsRead:N0}[/]");
-            perfTable.AddRow("[cyan1]Filtrados:[/]", $"[grey]{sourceMetrics.FilteredRecords:N0}[/]");
+            perfTable.AddRow("[cyan1]Filtrados:[/]", $"[grey]{_viewModel.FilteredRecordsCount:N0}[/]");
             perfTable.AddRow("[cyan1]Tempo Decorrido:[/]", $"[yellow]{FormatTimeSpan(sourceMetrics.ElapsedTime)}[/]");
             perfTable.AddRow("[cyan1]Taxa de Leitura:[/]", $"[green]{sourceMetrics.RecordsPerSecond:F1}[/] rec/s");
 
@@ -404,7 +405,7 @@ public class PipelineDashboardService
             var filtersGrid = new Grid().AddColumn();
             var validFilters = 0;
             
-            foreach (var filter in _viewModel.Configuration.Filters.Take(5))
+            foreach (var filter in _viewModel.Configuration.Filters)
             {
                 if (filter == null) continue;
                 
@@ -461,9 +462,9 @@ public class PipelineDashboardService
 
         configTable.AddRow("[cyan1]Tipo:[/]", $"[yellow]{_viewModel.Configuration.Destination.Type}[/]");
 
-        foreach (var setting in _viewModel.Configuration.Destination.Settings.Take(3))
+        foreach (var setting in _viewModel.Configuration.Destination.Settings)
         {
-            var value = setting.Value?.ToString() ?? "null";
+            var value = FormatSettingValue(setting.Value);
             configTable.AddRow($"  [grey]{setting.Key}:[/]", $"[white]{value}[/]");
         }
 
@@ -537,11 +538,13 @@ public class PipelineDashboardService
         if (destMetrics != null)
         {
             var written = destMetrics.TotalRecordsWritten;
-            var total = _viewModel.EstimatedTotal ?? sourceMetrics?.TotalRecordsRead ?? written;
+            // Total válido = total estimado - registros filtrados
+            var totalValid = (_viewModel.EstimatedTotal ?? sourceMetrics?.TotalRecordsRead ?? written) - _viewModel.FilteredRecordsCount;
+            var total = Math.Max(totalValid, written); // Garantir que total >= written
             var success = destMetrics.SuccessCount;
             var errors = destMetrics.ErrorCount;
 
-            // Progresso geral (baseado no total estimado)
+            // Progresso geral (baseado no total de registros válidos)
             var overallProgress = total > 0 ? (written * 100.0 / total) : 0;
 
             // Taxas de sucesso/erro dentro do que foi escrito
@@ -591,7 +594,7 @@ public class PipelineDashboardService
             var transformsGrid = new Grid().AddColumn();
             var validTransforms = 0;
             
-            foreach (var transform in _viewModel.Configuration.Transforms.Take(5))
+            foreach (var transform in _viewModel.Configuration.Transforms)
             {
                 if (transform == null) continue;
                 
@@ -676,5 +679,27 @@ public class PipelineDashboardService
             >= 500 => "red",
             _ => "grey"
         };
+    }
+    
+    private string FormatSettingValue(object? value)
+    {
+        if (value == null)
+            return "null";
+
+        if (value is Dictionary<object, object> dict)
+        {
+            // var items = dict.Select(kvp => $"{kvp.Key}: {FormatSettingValue(kvp.Value)}");
+            // return $"{{ {string.Join(", ", items)} }}";
+            return "[[]]";
+        }
+
+        if (value is IDictionary<object, object> idict)
+        {
+            //var items = idict.Select(kvp => $"{kvp.Key}: {FormatSettingValue(kvp.Value)}");
+            //return $"{{ {string.Join(", ", items)} }}";
+            return "[[]]";
+        }
+
+        return value.ToString() ?? "null";
     }
 }

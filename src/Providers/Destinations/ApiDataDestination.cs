@@ -23,6 +23,7 @@ public class ApiDataDestination : DataDestinationBase
     private Dictionary<string, string> _fieldMapping = new();
     private SemaphoreSlim? _rateLimiter;
     private Timer? _rateLimitTimer;
+    private readonly object _customMetricsLock = new();
 
     public override string DestinationType => "API";
 
@@ -233,17 +234,23 @@ public class ApiDataDestination : DataDestinationBase
 
                 var statusCode = (int)response.StatusCode;
 
-                // Registrar métricas customizadas
-                if (!Metrics.CustomMetrics.ContainsKey("StatusCodes"))
+                // Registrar métricas customizadas (thread-safe)
+                lock (_customMetricsLock)
                 {
-                    Metrics.CustomMetrics["StatusCodes"] = new Dictionary<int, long>();
+                    if (!Metrics.CustomMetrics.ContainsKey("StatusCodes"))
+                    {
+                        Metrics.CustomMetrics["StatusCodes"] = new Dictionary<int, long>();
+                    }
+                    var statusCodes = (Dictionary<int, long>)Metrics.CustomMetrics["StatusCodes"];
+                    statusCodes[statusCode] = statusCodes.GetValueOrDefault(statusCode, 0) + 1;
                 }
-                var statusCodes = (Dictionary<int, long>)Metrics.CustomMetrics["StatusCodes"];
-                statusCodes[statusCode] = statusCodes.GetValueOrDefault(statusCode, 0) + 1;
 
                 if (attempt > 1)
                 {
-                    Metrics.TotalRetries++;
+                    lock (_customMetricsLock)
+                    {
+                        Metrics.TotalRetries++;
+                    }
                 }
 
                 if (!response.IsSuccessStatusCode)

@@ -103,6 +103,10 @@ public class DataPipelineService
             // Processar dados
             await ProcessDataAsync(cancellationToken);
 
+            // Aguardar para garantir que todas as métricas sejam atualizadas
+            // Isso é importante porque operações assíncronas podem ainda estar atualizando métricas
+            await Task.Delay(2000, CancellationToken.None);
+
             // Parar dashboard
             cts.Cancel();
             try
@@ -113,6 +117,9 @@ public class DataPipelineService
             {
                 // Esperado
             }
+
+            // Aguardar um pouco mais para garantir que todas as tasks finalizaram
+            await Task.Delay(500, CancellationToken.None);
 
             // Exibir dashboard final
             AnsiConsole.Clear();
@@ -172,6 +179,7 @@ public class DataPipelineService
             if (!PassesFilters(record))
             {
                 filteredCount++;
+                _dashboardService.IncrementFilteredRecords();
                 continue;
             }
 
@@ -186,8 +194,6 @@ public class DataPipelineService
             // Processar lote
             if (batch.Count >= batchSize)
             {
-                _dashboardService.AddLogMessage($"Processando lote de {batch.Count} registros", "INFO");
-
                 var batchTimer = Stopwatch.StartNew();
                 var batchResult = await _destination!.WriteBatchAsync(batch, cancellationToken);
                 batchTimer.Stop();
@@ -201,18 +207,6 @@ public class DataPipelineService
                 _checkpoint.TotalProcessed = processedCount;
                 _checkpoint.SuccessCount = successCount;
                 _checkpoint.ErrorCount = errorCount;
-
-                // Log erros
-                if (batchResult.ErrorCount > 0)
-                {
-                    _dashboardService.AddLogMessage(
-                        $"Lote: {batchResult.SuccessCount} sucessos, {batchResult.ErrorCount} erros",
-                        "WARNING");
-                }
-                else
-                {
-                    _dashboardService.AddLogMessage($"Lote processado com sucesso", "SUCCESS");
-                }
 
                 batch.Clear();
 

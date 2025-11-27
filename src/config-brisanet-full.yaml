@@ -7,6 +7,7 @@ source:
     FilePath: "/Users/felipeseho/Desktop/bases/full-parceiro-brisanet.csv"
     Delimiter: ";"
     StartLine: 1
+    BatchSize: 100
     MaxLines: 100
 
 destination:

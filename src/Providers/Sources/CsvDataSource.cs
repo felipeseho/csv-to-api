@@ -27,7 +27,7 @@ public class CsvDataSource : Core.DataSourceBase
     {
         _filePath = GetConfigValue<string>("FilePath", string.Empty);
         _delimiter = GetConfigValue<string>("Delimiter", ",");
-        _startLine = GetConfigValue<int>("StartLine", 1);
+        _startLine = GetConfigValue("StartLine", 1);
         _maxLines = GetConfigValue<int?>("MaxLines", null);
         _batchSize = GetConfigValue<int>("BatchSize", 100);
 
@@ -73,6 +73,12 @@ public class CsvDataSource : Core.DataSourceBase
     {
         try
         {
+            // Se MaxLines está definido, usar como estimativa
+            if (_maxLines.HasValue)
+            {
+                return _maxLines.Value;
+            }
+
             using var reader = new StreamReader(_filePath);
             var count = 0L;
             while (await reader.ReadLineAsync() != null)
@@ -127,6 +133,12 @@ public class CsvDataSource : Core.DataSourceBase
                 break;
             }
 
+            // Verificar limite antes de processar
+            if (_maxLines.HasValue && processedCount >= _maxLines.Value)
+            {
+                break;
+            }
+
             lineNumber++;
 
             var data = new Dictionary<string, object>();
@@ -149,13 +161,8 @@ public class CsvDataSource : Core.DataSourceBase
             Metrics.TotalRecordsRead++;
             UpdateMetrics();
 
-            yield return record;
-
             processedCount++;
-            if (_maxLines.HasValue && processedCount >= _maxLines.Value)
-            {
-                break;
-            }
+            yield return record;
         }
     }
 

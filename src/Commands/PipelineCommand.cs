@@ -134,7 +134,7 @@ public class PipelineCommand : AsyncCommand<PipelineCommandSettings>
             .Centered()
             .Color(Color.Cyan1));
 
-        AnsiConsole.MarkupLine("[grey]Node to Node - Pipeline de Dados Universal[/]");
+        AnsiConsole.MarkupLine("[grey]Any to Any - Pipeline de Dados Universal[/]");
         AnsiConsole.WriteLine();
     }
 

@@ -24,6 +24,7 @@ public class DashboardViewModel
     public IDataSource? Source { get; set; }
     public IDataDestination? Destination { get; set; }
     public long? EstimatedTotal { get; set; }
+    public long FilteredRecordsCount { get; set; }
 
     public Queue<string> SourceLogs { get; } = new();
     public Queue<string> DestinationLogs { get; } = new();

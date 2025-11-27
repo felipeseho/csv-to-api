@@ -11,6 +11,8 @@ public abstract class DataDestinationBase : IDataDestination
     protected readonly DestinationMetrics Metrics = new();
     protected readonly Stopwatch Timer = new();
     protected readonly List<long> ResponseTimes = new();
+    private readonly object _responseTimesLock = new();
+    private readonly object _metricsLock = new();
 
     public abstract string DestinationType { get; }
 
@@ -83,13 +85,20 @@ public abstract class DataDestinationBase : IDataDestination
 
     protected void RecordResponse(long responseTimeMs, bool success)
     {
-        ResponseTimes.Add(responseTimeMs);
-        Metrics.TotalRecordsWritten++;
+        lock (_responseTimesLock)
+        {
+            ResponseTimes.Add(responseTimeMs);
+        }
+        
+        lock (_metricsLock)
+        {
+            Metrics.TotalRecordsWritten++;
 
-        if (success)
-            Metrics.SuccessCount++;
-        else
-            Metrics.ErrorCount++;
+            if (success)
+                Metrics.SuccessCount++;
+            else
+                Metrics.ErrorCount++;
+        }
     }
 
     protected void UpdateMetrics()
@@ -101,11 +110,14 @@ public abstract class DataDestinationBase : IDataDestination
             Metrics.RecordsPerSecond = Metrics.TotalRecordsWritten / Timer.Elapsed.TotalSeconds;
         }
 
-        if (ResponseTimes.Count > 0)
+        lock (_responseTimesLock)
         {
-            Metrics.AverageResponseTimeMs = (long)ResponseTimes.Average();
-            Metrics.MinResponseTimeMs = ResponseTimes.Min();
-            Metrics.MaxResponseTimeMs = ResponseTimes.Max();
+            if (ResponseTimes.Count > 0)
+            {
+                Metrics.AverageResponseTimeMs = (long)ResponseTimes.Average();
+                Metrics.MinResponseTimeMs = ResponseTimes.Min();
+                Metrics.MaxResponseTimeMs = ResponseTimes.Max();
+            }
         }
     }
 
